@@ -13,6 +13,9 @@ import {
   VoiceSpeakingPayload,
   SongDedication,
   SuperReactionPayload,
+  AIDJAnnouncement,
+  ListeningMilestone,
+  SpatialSeat,
 } from '@sony/types';
 import { useRoomStore } from '../store/roomStore';
 import { usePlaybackStore } from '../store/playbackStore';
@@ -114,6 +117,21 @@ class SocketService {
       useRoomStore.getState().setSuperReaction(data);
     });
 
+    // AI DJ Announcements in real-time
+    this.socket.on("dj:announcement", (data: AIDJAnnouncement) => {
+      useRoomStore.getState().setActiveAnnouncement(data);
+    });
+
+    // Group Listening Milestones in real-time
+    this.socket.on("milestone:unlocked", (data: { roomId: string; milestone: ListeningMilestone }) => {
+      useRoomStore.getState().unlockMilestone(data.milestone.id);
+    });
+
+    // 2D Spatial Audio Stage seats updated
+    this.socket.on("spatial:seats_updated", (data: { roomId: string; seats: SpatialSeat[] }) => {
+      useRoomStore.getState().setSpatialSeats(data.seats);
+    });
+
   }
 
   disconnect() {
@@ -166,6 +184,18 @@ class SocketService {
 
   sendSuperReaction(data: SuperReactionPayload) {
     this.socket?.emit("reaction:super_burst", data);
+  }
+
+  sendDJCommentary(roomId: string, announcement: AIDJAnnouncement) {
+    this.socket?.emit("dj:trigger_commentary", { roomId, announcement });
+  }
+
+  claimMilestone(roomId: string, milestone: ListeningMilestone) {
+    this.socket?.emit("milestone:claim", { roomId, milestone });
+  }
+
+  updateSpatialPosition(roomId: string, seat: SpatialSeat) {
+    this.socket?.emit("spatial:position_update", { roomId, seat });
   }
 }
 

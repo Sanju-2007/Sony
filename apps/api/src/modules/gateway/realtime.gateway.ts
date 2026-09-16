@@ -25,6 +25,9 @@ import {
   SoundboardTriggerPayload,
   SongDedication,
   SuperReactionPayload,
+  AIDJAnnouncement,
+  ListeningMilestone,
+  SpatialSeat,
 } from '@sony/types';
 
 
@@ -38,6 +41,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   private readonly logger = new Logger(RealtimeGateway.name);
   private readonly roomQueues = new Map<string, QueueItemDto[]>();
+  private readonly roomSpatialSeats = new Map<string, Map<string, SpatialSeat>>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -476,6 +480,45 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     };
 
     this.server.to(data.roomId).emit("reaction:super_burst", payload);
+  }
+
+  @SubscribeMessage("dj:trigger_commentary")
+  async handleDJCommentary(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; announcement: AIDJAnnouncement },
+  ) {
+    this.server.to(data.roomId).emit("dj:announcement", data.announcement);
+  }
+
+  @SubscribeMessage("milestone:claim")
+  async handleMilestoneClaim(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; milestone: ListeningMilestone },
+  ) {
+    this.server.to(data.roomId).emit("milestone:unlocked", {
+      roomId: data.roomId,
+      milestone: data.milestone,
+    });
+  }
+
+  @SubscribeMessage("spatial:position_update")
+  async handleSpatialPosition(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; seat: SpatialSeat },
+  ) {
+    const userId = socket.data.userId;
+    if (!userId) return;
+
+    if (!this.roomSpatialSeats.has(data.roomId)) {
+      this.roomSpatialSeats.set(data.roomId, new Map());
+    }
+    const roomSeats = this.roomSpatialSeats.get(data.roomId)!;
+    roomSeats.set(userId, { ...data.seat, userId });
+
+    this.server.to(data.roomId).emit("spatial:seats_updated", {
+      roomId: data.roomId,
+      seats: Array.from(roomSeats.values()),
+    });
   }
 }
 

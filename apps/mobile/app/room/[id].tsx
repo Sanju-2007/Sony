@@ -10,8 +10,12 @@ import { SessionRecapModal } from "../../src/components/room/SessionRecapModal";
 import { RoomThemeModal } from "../../src/components/room/RoomThemeModal";
 import { SuperReactionShower } from "../../src/components/reactions/SuperReactionShower";
 import { SuperReactionModal } from "../../src/components/reactions/SuperReactionModal";
+import { AIDJAnnouncementBanner } from "../../src/components/room/AIDJAnnouncementBanner";
+import { AIDJSettingsModal } from "../../src/components/room/AIDJSettingsModal";
+import { MilestonesModal } from "../../src/components/room/MilestonesModal";
+import { SpatialAudioStageModal } from "../../src/components/voice/SpatialAudioStageModal";
 import { useRoomThemeStore } from "../../src/store/roomThemeStore";
-import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette } from "lucide-react-native";
+import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
 import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
@@ -120,6 +124,8 @@ export default function RoomScreen() {
     removeReaction,
     activeSuperReaction,
     setSuperReaction,
+    activeAnnouncement,
+    setActiveAnnouncement,
     isVoiceMuted,
     toggleMute,
   } = useRoomStore();
@@ -140,6 +146,9 @@ export default function RoomScreen() {
   const [showRecapModal, setShowRecapModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showSuperReactionModal, setShowSuperReactionModal] = useState(false);
+  const [showAIDJModal, setShowAIDJModal] = useState(false);
+  const [showMilestonesModal, setShowMilestonesModal] = useState(false);
+  const [showSpatialModal, setShowSpatialModal] = useState(false);
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | "track_end" | null>(null);
   const [sleepRemainingSeconds, setSleepRemainingSeconds] = useState<number | null>(null);
   const [acousticPreset, setAcousticPreset] = useState<AcousticPresetId>("CLEARAUDIO");
@@ -276,6 +285,14 @@ export default function RoomScreen() {
           <View style={{ marginBottom: spacing.xs }}>
             <SongDedicationBanner dedication={activeDedication} />
           </View>
+        )}
+
+        {/* Active AI DJ Transition Commentary Announcement */}
+        {activeAnnouncement && (
+          <AIDJAnnouncementBanner
+            announcement={activeAnnouncement}
+            onDismiss={() => setActiveAnnouncement(null)}
+          />
         )}
 
         {/* Mode Toggle Pill (Artwork vs Live Lyrics) */}
@@ -505,6 +522,51 @@ export default function RoomScreen() {
             <Text style={[styles.quickToolText, { color: palette.textPrimary }]}>
               {theme.name.split(" ")[0]}
             </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick Tools Row 4 (AI DJ Co-Pilot | Milestones & Streaks | 2D Spatial Stage) */}
+        <View style={[styles.quickToolsRow, { marginTop: 4 }]}>
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: "rgba(139, 92, 246, 0.08)",
+                borderColor: "rgba(139, 92, 246, 0.3)",
+              },
+            ]}
+            onPress={() => setShowAIDJModal(true)}
+          >
+            <Radio size={12} color="#A78BFA" style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: "#A78BFA" }]}>AI DJ</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: "rgba(245, 158, 11, 0.08)",
+                borderColor: "rgba(245, 158, 11, 0.3)",
+              },
+            ]}
+            onPress={() => setShowMilestonesModal(true)}
+          >
+            <Award size={12} color="#F59E0B" style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: "#F59E0B" }]}>Milestones</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: "rgba(56, 189, 248, 0.08)",
+                borderColor: "rgba(56, 189, 248, 0.3)",
+              },
+            ]}
+            onPress={() => setShowSpatialModal(true)}
+          >
+            <Headphones size={12} color="#38BDF8" style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: "#38BDF8" }]}>Spatial Stage</Text>
           </TouchableOpacity>
         </View>
 
@@ -981,6 +1043,28 @@ export default function RoomScreen() {
         visible={showSuperReactionModal}
         onClose={() => setShowSuperReactionModal(false)}
         onTrigger={handleTriggerSuperReaction}
+      />
+
+      {/* AI Collaborative DJ Co-Pilot Settings Modal */}
+      <AIDJSettingsModal
+        visible={showAIDJModal}
+        onClose={() => setShowAIDJModal(false)}
+        roomId={roomId}
+        currentTrack={currentTrack}
+      />
+
+      {/* Room Group Milestones & Streaks Modal */}
+      <MilestonesModal
+        visible={showMilestonesModal}
+        onClose={() => setShowMilestonesModal(false)}
+        roomId={roomId}
+      />
+
+      {/* 2D Interactive Spatial Audio Stage Modal */}
+      <SpatialAudioStageModal
+        visible={showSpatialModal}
+        onClose={() => setShowSpatialModal(false)}
+        roomId={roomId}
       />
     </SafeAreaView>
 

@@ -14,6 +14,12 @@ import {
   RoomThemeConfig,
   SongDedication,
   SuperReactionType,
+  AIDJPersona,
+  AIDJConfig,
+  AIDJAnnouncement,
+  ListeningMilestone,
+  MilestoneType,
+  SpatialSeat,
 } from '@sony/types';
 
 
@@ -727,5 +733,304 @@ export class SessionRecapEngine {
     };
   }
 }
+
+// ============================================================================
+// PHASE 8: AI COLLABORATIVE DJ & SMART QUEUE CO-PILOT
+// ============================================================================
+
+export interface PersonaMeta {
+  id: AIDJPersona;
+  name: string;
+  tagline: string;
+  tone: string;
+  avatarEmoji: string;
+  samplePhrase: string;
+}
+
+export const AIDJ_PERSONAS: Record<AIDJPersona, PersonaMeta> = {
+  LOFI_CHILL: {
+    id: 'LOFI_CHILL',
+    name: 'Milo Lo-Fi',
+    tagline: 'Warm vinyl crackle & effortless midnight vibes',
+    tone: 'Soothing, gentle, relaxed',
+    avatarEmoji: '☕️',
+    samplePhrase: 'Keep those headphones resting easy... rolling right into some warm chords.',
+  },
+  HYPE_BEAST: {
+    id: 'HYPE_BEAST',
+    name: 'DJ Blitz',
+    tagline: 'Bass drops, festival energy & maximum room hype',
+    tone: 'High octane, exclamation-heavy, vibrant',
+    avatarEmoji: '⚡️',
+    samplePhrase: 'Turn the room all the way up! We are not slowing down tonight!',
+  },
+  CLUB_RESIDENT: {
+    id: 'CLUB_RESIDENT',
+    name: 'Kaito Nocturne',
+    tagline: 'Underground warehouse grooves & seamless deep cuts',
+    tone: 'Sleek, technical, atmospheric',
+    avatarEmoji: '🎛️',
+    samplePhrase: 'Locking into this tempo shift. Catching the wave on deck two.',
+  },
+  RADIO_HOST: {
+    id: 'RADIO_HOST',
+    name: 'Aria FM',
+    tagline: 'Golden age broadcast voice with personal listener dedications',
+    tone: 'Heartfelt, eloquent, storytelling',
+    avatarEmoji: '🎙️',
+    samplePhrase: 'Broadcasting live to all our listeners across the world... this one is special.',
+  },
+};
+
+export class AIDJEngine {
+  /**
+   * Generates natural AI DJ commentary for song transitions based on active persona.
+   */
+  public static generateTransitionAnnouncement(options: {
+    roomId: string;
+    currentTrack?: TrackMetadata;
+    nextTrack: TrackMetadata;
+    addedBy?: string;
+    persona?: AIDJPersona;
+  }): AIDJAnnouncement {
+    const { roomId, currentTrack, nextTrack, addedBy, persona = 'RADIO_HOST' } = options;
+    const meta = AIDJ_PERSONAS[persona] || AIDJ_PERSONAS.RADIO_HOST;
+
+    let introText = '';
+    const requesterClause = addedBy ? ` requested by ${addedBy}` : '';
+
+    switch (persona) {
+      case 'LOFI_CHILL':
+        introText = currentTrack
+          ? `Sliding smoothly out of "${currentTrack.title}" into "${nextTrack.title}" by ${nextTrack.artist}${requesterClause}. Keep the midnight vibes rolling.`
+          : `Setting the room in motion with "${nextTrack.title}" by ${nextTrack.artist}${requesterClause}. Sit back and breathe.`;
+        break;
+
+      case 'HYPE_BEAST':
+        introText = currentTrack
+          ? `WOAH! "${currentTrack.title}" was crazy, but up next we got "${nextTrack.title}" by ${nextTrack.artist}${requesterClause}! Let's turn this room UP!`
+          : `AIR HORNS READY! Starting strong with "${nextTrack.title}" by ${nextTrack.artist}${requesterClause}! Let's go!`;
+        break;
+
+      case 'CLUB_RESIDENT':
+        introText = currentTrack
+          ? `Harmonic mix locking in. Transitioning from "${currentTrack.title}" straight into ${nextTrack.artist}'s "${nextTrack.title}"${requesterClause}. Feel that low-end.`
+          : `Opening the stage with "${nextTrack.title}" by ${nextTrack.artist}${requesterClause}. 124 on the clock.`;
+        break;
+
+      case 'RADIO_HOST':
+      default:
+        introText = currentTrack
+          ? `You're tuned in live with our synchronized room. That was "${currentTrack.title}", and right now we're spinning "${nextTrack.title}" by ${nextTrack.artist}${requesterClause}.`
+          : `Welcome to the frequency. We're kicking off tonight's session with "${nextTrack.title}" by ${nextTrack.artist}${requesterClause}.`;
+        break;
+    }
+
+    return {
+      id: `ann-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      roomId,
+      trackId: nextTrack.id,
+      trackTitle: nextTrack.title,
+      trackArtist: nextTrack.artist,
+      introText,
+      persona,
+      timestamp: Date.now(),
+    };
+  }
+
+  /**
+   * Smart auto-queue replenishment: recommends matching tracks from a catalog pool
+   * based on dominant genres and energy of recently played songs.
+   */
+  public static recommendNextTracks(
+    recentTracks: TrackMetadata[],
+    catalogPool: TrackMetadata[],
+    count: number = 3
+  ): TrackMetadata[] {
+    if (catalogPool.length === 0) return [];
+
+    const playedIds = new Set(recentTracks.map((t) => t.id));
+    const available = catalogPool.filter((t) => !playedIds.has(t.id));
+    if (available.length <= count) return available;
+
+    // Determine target genre from most recent track
+    const targetGenre = recentTracks[recentTracks.length - 1]?.genre?.toLowerCase();
+
+    // Sort by matching genre first, fallback to remaining
+    const sorted = [...available].sort((a, b) => {
+      const aMatches = targetGenre && a.genre?.toLowerCase() === targetGenre ? 1 : 0;
+      const bMatches = targetGenre && b.genre?.toLowerCase() === targetGenre ? 1 : 0;
+      return bMatches - aMatches;
+    });
+
+    return sorted.slice(0, count);
+  }
+}
+
+// ============================================================================
+// PHASE 8: GROUP LISTENING MILESTONES & STREAKS
+// ============================================================================
+
+export const DEFAULT_LISTENING_MILESTONES: ListeningMilestone[] = [
+  {
+    id: 'm-sync-15',
+    title: '15m Synchronized Vibe',
+    description: '15 minutes of uninterrupted synchronized group listening.',
+    icon: '✨',
+    targetValue: 15,
+    currentValue: 0,
+    achieved: false,
+    type: 'SYNC_TIME',
+  },
+  {
+    id: 'm-streak-5',
+    title: '5-Song Groove Streak',
+    description: 'Listen to 5 consecutive tracks with everyone in the room.',
+    icon: '🔥',
+    targetValue: 5,
+    currentValue: 0,
+    achieved: false,
+    type: 'STREAK_SONGS',
+  },
+  {
+    id: 'm-anthem-10',
+    title: 'Unanimous Anthem',
+    description: 'A queued track reaches 10 or more community upvotes.',
+    icon: '👑',
+    targetValue: 10,
+    currentValue: 0,
+    achieved: false,
+    type: 'UNANIMOUS_UPVOTES',
+  },
+  {
+    id: 'm-marathon-60',
+    title: '1-Hour Room Marathon',
+    description: '60 minutes of collective musical journey together.',
+    icon: '🏆',
+    targetValue: 60,
+    currentValue: 0,
+    achieved: false,
+    type: 'MARATHON',
+  },
+];
+
+export class ListeningMilestoneTracker {
+  /**
+   * Evaluates current session counters and returns updated milestones with new unlocks.
+   */
+  public static evaluateMilestones(session: {
+    listeningMinutes: number;
+    tracksPlayedCount: number;
+    maxTrackUpvotes: number;
+    currentMilestones?: ListeningMilestone[];
+  }): {
+    updatedMilestones: ListeningMilestone[];
+    newlyUnlocked: ListeningMilestone[];
+  } {
+    const list = (session.currentMilestones && session.currentMilestones.length > 0)
+      ? session.currentMilestones
+      : DEFAULT_LISTENING_MILESTONES;
+
+    const newlyUnlocked: ListeningMilestone[] = [];
+    const updatedMilestones: ListeningMilestone[] = list.map((m) => {
+      let val = m.currentValue;
+      switch (m.type) {
+        case 'SYNC_TIME':
+        case 'MARATHON':
+          val = session.listeningMinutes;
+          break;
+        case 'STREAK_SONGS':
+          val = session.tracksPlayedCount;
+          break;
+        case 'UNANIMOUS_UPVOTES':
+          val = session.maxTrackUpvotes;
+          break;
+      }
+
+      const isAchieved = val >= m.targetValue;
+      const justUnlocked = isAchieved && !m.achieved;
+
+      const updated: ListeningMilestone = {
+        ...m,
+        currentValue: val,
+        achieved: isAchieved,
+        achievedAt: justUnlocked ? new Date().toISOString() : m.achievedAt,
+      };
+
+      if (justUnlocked) {
+        newlyUnlocked.push(updated);
+      }
+
+      return updated;
+    });
+
+    return { updatedMilestones, newlyUnlocked };
+  }
+}
+
+// ============================================================================
+// PHASE 8: 2D INTERACTIVE SPATIAL AUDIO STAGE
+// ============================================================================
+
+export class SpatialAudioEngine {
+  /**
+   * Computes stereo pan (-1.0 left to 1.0 right) and distance attenuation gain (0.25 to 1.0)
+   * for a participant located at (x, y) relative to the virtual center stage (0, 0).
+   */
+  public static calculateSpatialParameters(
+    x: number,
+    y: number,
+    sourceX: number = 0,
+    sourceY: number = 0
+  ): { pan: number; distanceGain: number } {
+    // Relative coordinates
+    const dx = x - sourceX;
+    const dy = y - sourceY;
+
+    // Horizontal pan: clamped from -1.0 to 1.0
+    const pan = Math.max(-1.0, Math.min(1.0, Math.round((dx / 100) * 100) / 100));
+
+    // Distance in a 200x200 arena (max distance from center is sqrt(100^2 + 100^2) ~= 141.4)
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const maxDist = 141.42;
+
+    // Attenuation formula: closer is louder (1.0 at center, down to 0.25 at edges)
+    const normalizedDist = Math.min(1.0, distance / maxDist);
+    const distanceGain = Math.round(Math.max(0.25, 1.0 - normalizedDist * 0.75) * 100) / 100;
+
+    return { pan, distanceGain };
+  }
+
+  /**
+   * Distributes room members in a circular seating arrangement around the central stage.
+   */
+  public static arrangeCircleSeats(
+    members: { userId: string; displayName: string; avatarUrl?: string }[],
+    radius: number = 65
+  ): SpatialSeat[] {
+    const total = members.length;
+    if (total === 0) return [];
+
+    return members.map((m, index) => {
+      // Angle evenly spaced around circle starting from top (3pi/2)
+      const angle = (2 * Math.PI * index) / total - Math.PI / 2;
+      const x = Math.round(radius * Math.cos(angle));
+      const y = Math.round(radius * Math.sin(angle));
+      const { pan, distanceGain } = this.calculateSpatialParameters(x, y);
+
+      return {
+        userId: m.userId,
+        displayName: m.displayName,
+        avatarUrl: m.avatarUrl,
+        x,
+        y,
+        pan,
+        distanceGain,
+        isSpeaking: false,
+      };
+    });
+  }
+}
+
 
 

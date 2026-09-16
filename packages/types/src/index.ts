@@ -247,6 +247,9 @@ export interface ClientToServerEvents {
   'presence:heartbeat': (data: { status: PresenceStatus; currentRoomId?: string }) => void;
   'dedication:send': (data: SongDedication) => void;
   'reaction:super_burst': (data: SuperReactionPayload) => void;
+  'dj:trigger_commentary': (data: { roomId: string; announcement: AIDJAnnouncement }) => void;
+  'milestone:claim': (data: { roomId: string; milestone: ListeningMilestone }) => void;
+  'spatial:position_update': (data: { roomId: string; seat: SpatialSeat }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -263,6 +266,9 @@ export interface ServerToClientEvents {
   'reaction:burst': (data: ReactionBurstPayload) => void;
   'reaction:super_burst': (data: SuperReactionPayload) => void;
   'dedication:new': (data: SongDedication) => void;
+  'dj:announcement': (data: AIDJAnnouncement) => void;
+  'milestone:unlocked': (data: { roomId: string; milestone: ListeningMilestone }) => void;
+  'spatial:seats_updated': (data: { roomId: string; seats: SpatialSeat[] }) => void;
   'voice:speaking': (data: VoiceSpeakingPayload) => void;
   'presence:update': (data: UserPresence) => void;
   'error': (data: { message: string; code?: string }) => void;
@@ -397,6 +403,55 @@ export interface RoomThemeConfig {
   textSecondary: string;
   textTertiary: string;
   particleActive: string;
+}
+
+// ============================================================================
+// PHASE 8: AI COLLABORATIVE DJ, LISTENING MILESTONES & SPATIAL STAGE
+// ============================================================================
+
+export type AIDJPersona = 'LOFI_CHILL' | 'HYPE_BEAST' | 'CLUB_RESIDENT' | 'RADIO_HOST';
+
+export interface AIDJConfig {
+  enabled: boolean;
+  persona: AIDJPersona;
+  autoQueueReplenish: boolean;
+  voiceCommentary: boolean;
+}
+
+export interface AIDJAnnouncement {
+  id: string;
+  roomId: string;
+  trackId: string;
+  trackTitle: string;
+  trackArtist: string;
+  introText: string;
+  persona: AIDJPersona;
+  timestamp: number;
+}
+
+export type MilestoneType = 'SYNC_TIME' | 'STREAK_SONGS' | 'UNANIMOUS_UPVOTES' | 'MARATHON';
+
+export interface ListeningMilestone {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  targetValue: number;
+  currentValue: number;
+  achieved: boolean;
+  achievedAt?: string;
+  type: MilestoneType;
+}
+
+export interface SpatialSeat {
+  userId: string;
+  displayName: string;
+  avatarUrl?: string;
+  x: number; // -100 to 100 on virtual stage
+  y: number; // -100 to 100 on virtual stage
+  pan: number; // -1.0 (far left) to 1.0 (far right)
+  distanceGain: number; // 0.2 to 1.0 attenuation gain
+  isSpeaking?: boolean;
 }
 
 
