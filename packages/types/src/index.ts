@@ -245,6 +245,8 @@ export interface ClientToServerEvents {
   'chat:typing': (data: { roomId: string; isTyping: boolean }) => void;
   'reaction:send': (data: { roomId: string; emoji: string }) => void;
   'presence:heartbeat': (data: { status: PresenceStatus; currentRoomId?: string }) => void;
+  'dedication:send': (data: SongDedication) => void;
+  'reaction:super_burst': (data: SuperReactionPayload) => void;
 }
 
 export interface ServerToClientEvents {
@@ -259,10 +261,13 @@ export interface ServerToClientEvents {
   'chat:message': (data: ChatMessageDto) => void;
   'chat:typing': (data: { userId: string; isTyping: boolean }) => void;
   'reaction:burst': (data: ReactionBurstPayload) => void;
+  'reaction:super_burst': (data: SuperReactionPayload) => void;
+  'dedication:new': (data: SongDedication) => void;
   'voice:speaking': (data: VoiceSpeakingPayload) => void;
   'presence:update': (data: UserPresence) => void;
   'error': (data: { message: string; code?: string }) => void;
 }
+
 
 // ============================================================================
 // PHASE 6: CROSSFADE, AMBIENT SOUNDSCAPES & MUSIC TASTE BLEND

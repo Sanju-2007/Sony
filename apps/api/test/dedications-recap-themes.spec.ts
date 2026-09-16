@@ -1,5 +1,6 @@
 import { SessionRecapEngine, ROOM_THEMES } from "@sony/music-core";
-import { TrackMetadata, RoomThemeId, SongDedication } from "@sony/types";
+import { TrackMetadata, RoomThemeId, SongDedication, SuperReactionPayload } from "@sony/types";
+import { RealtimeGateway } from "../src/modules/gateway/realtime.gateway";
 
 describe("Phase 7: Song Dedications, Session Recap & Reactive Room Themes", () => {
   describe("1. Session Recap & Room Memories Engine", () => {
@@ -146,6 +147,83 @@ describe("Phase 7: Song Dedications, Session Recap & Reactive Room Themes", () =
       expect(dedication.toUserName).toBe("Aisha");
       expect(dedication.badgeStyle).toBe("GOLDEN");
       expect(dedication.message.length).toBeGreaterThan(5);
+    });
+  });
+
+  describe("4. Realtime Gateway Broadcasts for Dedications & Super Reactions", () => {
+    let gateway: RealtimeGateway;
+    let mockServer: any;
+    let mockSocket: any;
+
+    beforeEach(() => {
+      mockServer = {
+        to: jest.fn().mockReturnThis(),
+        emit: jest.fn(),
+      };
+
+      mockSocket = {
+        data: { userId: "user-sanju", username: "Sanju" },
+      };
+
+      gateway = new RealtimeGateway(
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+      gateway.server = mockServer;
+    });
+
+    it("broadcasts dedication:new with sender info when dedication:send received", async () => {
+      const dedicationData: SongDedication = {
+        id: "ded-123",
+        roomId: "room-party-1",
+        trackId: "tr-01",
+        fromUserId: "placeholder",
+        fromUserName: "placeholder",
+        toUserName: "Aisha",
+        message: "This track reminds me of our trip!",
+        badgeStyle: "NEON",
+        createdAt: new Date().toISOString(),
+      };
+
+      await gateway.handleDedication(mockSocket as any, dedicationData);
+
+      expect(mockServer.to).toHaveBeenCalledWith("room-party-1");
+      expect(mockServer.emit).toHaveBeenCalledWith(
+        "dedication:new",
+        expect.objectContaining({
+          id: "ded-123",
+          fromUserId: "user-sanju",
+          fromUserName: "Sanju",
+          toUserName: "Aisha",
+          badgeStyle: "NEON",
+        }),
+      );
+    });
+
+    it("broadcasts reaction:super_burst with sender info when reaction:super_burst received", async () => {
+      const burstData: SuperReactionPayload = {
+        roomId: "room-party-1",
+        type: "DISCO_BLAST",
+        userId: "placeholder",
+        userName: "placeholder",
+        timestamp: 0,
+      };
+
+      await gateway.handleSuperBurst(mockSocket as any, burstData);
+
+      expect(mockServer.to).toHaveBeenCalledWith("room-party-1");
+      expect(mockServer.emit).toHaveBeenCalledWith(
+        "reaction:super_burst",
+        expect.objectContaining({
+          roomId: "room-party-1",
+          type: "DISCO_BLAST",
+          userId: "user-sanju",
+          userName: "Sanju",
+        }),
+      );
     });
   });
 });

@@ -8,13 +8,15 @@ import { SongDedicationModal } from "../../src/components/room/SongDedicationMod
 import { SongDedicationBanner } from "../../src/components/room/SongDedicationBanner";
 import { SessionRecapModal } from "../../src/components/room/SessionRecapModal";
 import { RoomThemeModal } from "../../src/components/room/RoomThemeModal";
+import { SuperReactionShower } from "../../src/components/reactions/SuperReactionShower";
+import { SuperReactionModal } from "../../src/components/reactions/SuperReactionModal";
 import { useRoomThemeStore } from "../../src/store/roomThemeStore";
 import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
 import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
 import { HostModerationModal } from "../../src/components/room/HostModerationModal";
-import { ModerationActionType } from "@sony/types";
+import { ModerationActionType, SuperReactionType, SuperReactionPayload } from "@sony/types";
 import React, { useState, useEffect } from "react";
 
 import {
@@ -116,6 +118,8 @@ export default function RoomScreen() {
     messages,
     reactions,
     removeReaction,
+    activeSuperReaction,
+    setSuperReaction,
     isVoiceMuted,
     toggleMute,
   } = useRoomStore();
@@ -135,6 +139,7 @@ export default function RoomScreen() {
   const [showDedicationModal, setShowDedicationModal] = useState(false);
   const [showRecapModal, setShowRecapModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showSuperReactionModal, setShowSuperReactionModal] = useState(false);
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | "track_end" | null>(null);
   const [sleepRemainingSeconds, setSleepRemainingSeconds] = useState<number | null>(null);
   const [acousticPreset, setAcousticPreset] = useState<AcousticPresetId>("CLEARAUDIO");
@@ -188,6 +193,18 @@ export default function RoomScreen() {
     socketService.sendReaction(roomId, emoji);
   };
 
+  const handleTriggerSuperReaction = (type: SuperReactionType) => {
+    const payload: SuperReactionPayload = {
+      roomId,
+      type,
+      userId: "user-1",
+      userName: "Sanju (You)",
+      timestamp: Date.now(),
+    };
+    setSuperReaction(payload);
+    socketService.sendSuperReaction(payload);
+  };
+
   const handleSendMessage = () => {
     if (!chatInput.trim()) return;
     socketService.sendChatMessage(roomId, chatInput.trim());
@@ -225,6 +242,12 @@ export default function RoomScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={["top", "bottom"]}>
       {/* Floating Reactions Overlay */}
       <FloatingReactionsOverlay reactions={reactions} onFinish={removeReaction} />
+
+      {/* Fullscreen Super Reaction Burst Shower */}
+      <SuperReactionShower
+        activeSuperReaction={activeSuperReaction}
+        onFinish={() => setSuperReaction(null)}
+      />
 
       {/* Header */}
       <View style={styles.header}>
@@ -544,6 +567,15 @@ export default function RoomScreen() {
               <Text style={styles.reactionText}>{emoji}</Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={[
+              styles.superReactionBtn,
+              { backgroundColor: "rgba(245, 158, 11, 0.15)", borderColor: "#F59E0B" },
+            ]}
+            onPress={() => setShowSuperReactionModal(true)}
+          >
+            <Sparkles size={16} color="#F59E0B" />
+          </TouchableOpacity>
         </View>
 
         {/* Lower Tab Selector (Chat | Voice | Queue) */}
@@ -943,6 +975,13 @@ export default function RoomScreen() {
         visible={showThemeModal}
         onClose={() => setShowThemeModal(false)}
       />
+
+      {/* Super Reaction Burst Modal */}
+      <SuperReactionModal
+        visible={showSuperReactionModal}
+        onClose={() => setShowSuperReactionModal(false)}
+        onTrigger={handleTriggerSuperReaction}
+      />
     </SafeAreaView>
 
 
@@ -1124,6 +1163,14 @@ const styles = StyleSheet.create({
   },
   reactionText: {
     fontSize: 18,
+  },
+  superReactionBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
   },
   subTabRow: {
     flexDirection: "row",

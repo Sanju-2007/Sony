@@ -23,7 +23,10 @@ import {
   TrackMetadata,
   ModerationActionPayload,
   SoundboardTriggerPayload,
+  SongDedication,
+  SuperReactionPayload,
 } from '@sony/types';
+
 
 @WebSocketGateway({
   cors: { origin: '*' },
@@ -438,4 +441,41 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     // Broadcast moderation event to room
     this.server.to(data.roomId).emit("moderation:event", payload);
   }
+
+  @SubscribeMessage("dedication:send")
+  async handleDedication(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: SongDedication,
+  ) {
+    const userId = socket.data.userId;
+    if (!userId) return;
+
+    const payload: SongDedication = {
+      ...data,
+      fromUserId: userId,
+      fromUserName: socket.data.username || data.fromUserName || "Listener",
+      createdAt: new Date().toISOString(),
+    };
+
+    this.server.to(data.roomId).emit("dedication:new", payload);
+  }
+
+  @SubscribeMessage("reaction:super_burst")
+  async handleSuperBurst(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: SuperReactionPayload,
+  ) {
+    const userId = socket.data.userId;
+    if (!userId) return;
+
+    const payload: SuperReactionPayload = {
+      ...data,
+      userId,
+      userName: socket.data.username || data.userName || "Listener",
+      timestamp: Date.now(),
+    };
+
+    this.server.to(data.roomId).emit("reaction:super_burst", payload);
+  }
 }
+

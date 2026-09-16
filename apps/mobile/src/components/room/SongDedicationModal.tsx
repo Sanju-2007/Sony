@@ -11,6 +11,7 @@ import {
 import { Sparkles, X, Heart, Zap, Disc3, Check, Send } from "lucide-react-native";
 import { colors, spacing, typography, radii } from "../../theme/tokens";
 import { useRoomThemeStore } from "../../store/roomThemeStore";
+import { socketService } from "../../services/socketService";
 import { DedicationBadgeStyle, SongDedication, TrackMetadata } from "@sony/types";
 
 interface SongDedicationModalProps {
@@ -65,6 +66,7 @@ export const SongDedicationModal: React.FC<SongDedicationModalProps> = ({
     };
 
     addDedication(newDedication);
+    socketService.sendDedication(newDedication);
     setSentSuccess(true);
     setTimeout(() => {
       setSentSuccess(false);

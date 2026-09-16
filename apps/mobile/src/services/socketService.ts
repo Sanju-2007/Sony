@@ -11,9 +11,12 @@ import {
   QueueItemDto,
   TrackMetadata,
   VoiceSpeakingPayload,
+  SongDedication,
+  SuperReactionPayload,
 } from '@sony/types';
 import { useRoomStore } from '../store/roomStore';
 import { usePlaybackStore } from '../store/playbackStore';
+import { useRoomThemeStore } from '../store/roomThemeStore';
 
 const WS_URL = process.env.EXPO_PUBLIC_WS_URL || 'http://localhost:4000/realtime';
 
@@ -101,6 +104,16 @@ class SocketService {
       usePlaybackStore.getState().setVoiceActive(data.isSpeaking);
     });
 
+    // Song Dedications in real-time
+    this.socket.on("dedication:new", (data: SongDedication) => {
+      useRoomThemeStore.getState().addDedication(data);
+    });
+
+    // Super Reaction Bursts in real-time
+    this.socket.on("reaction:super_burst", (data: SuperReactionPayload) => {
+      useRoomStore.getState().setSuperReaction(data);
+    });
+
   }
 
   disconnect() {
@@ -145,6 +158,14 @@ class SocketService {
 
   sendVoiceSpeaking(roomId: string, isSpeaking: boolean, audioLevel: number = 0.8) {
     this.socket?.emit("voice:speaking", { roomId, isSpeaking, audioLevel });
+  }
+
+  sendDedication(data: SongDedication) {
+    this.socket?.emit("dedication:send", data);
+  }
+
+  sendSuperReaction(data: SuperReactionPayload) {
+    this.socket?.emit("reaction:super_burst", data);
   }
 }
 

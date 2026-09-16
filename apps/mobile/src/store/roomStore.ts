@@ -1,11 +1,13 @@
 import { create } from 'zustand';
-import { RoomDetails, RoomMemberInfo, ChatMessageDto, ReactionBurstPayload } from '@sony/types';
+import { RoomDetails, RoomMemberInfo, ChatMessageDto, ReactionBurstPayload, SuperReactionPayload } from '@sony/types';
+
 
 interface RoomStoreState {
   currentRoom: RoomDetails | null;
   members: RoomMemberInfo[];
   messages: ChatMessageDto[];
   reactions: ReactionBurstPayload[];
+  activeSuperReaction: SuperReactionPayload | null;
   isVoiceMuted: boolean;
   isSingTogetherEnabled: boolean;
 
@@ -13,9 +15,11 @@ interface RoomStoreState {
   addMessage: (msg: ChatMessageDto) => void;
   addReaction: (rx: ReactionBurstPayload) => void;
   removeReaction: (timestamp: number) => void;
+  setSuperReaction: (rx: SuperReactionPayload | null) => void;
   toggleMute: () => void;
   toggleSingTogether: () => void;
 }
+
 
 export const useRoomStore = create<RoomStoreState>((set) => ({
   currentRoom: {
@@ -90,6 +94,7 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
     },
   ],
   reactions: [],
+  activeSuperReaction: null,
   isVoiceMuted: false,
   isSingTogetherEnabled: true,
 
@@ -97,6 +102,8 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
   addReaction: (rx) => set((s) => ({ reactions: [...s.reactions.slice(-12), rx] })),
   removeReaction: (ts) => set((s) => ({ reactions: s.reactions.filter((r) => r.timestamp !== ts) })),
+  setSuperReaction: (rx) => set({ activeSuperReaction: rx }),
   toggleMute: () => set((s) => ({ isVoiceMuted: !s.isVoiceMuted })),
   toggleSingTogether: () => set((s) => ({ isSingTogetherEnabled: !s.isSingTogetherEnabled })),
 }));
+
