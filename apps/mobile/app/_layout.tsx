@@ -2,7 +2,7 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { BackgroundParticles } from '../src/components/particles/BackgroundParticles';
 import { colors } from '../src/theme/tokens';
 import { usePlaybackStore } from '../src/store/playbackStore';
@@ -14,8 +14,11 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <StatusBar style="dark" />
-      <BackgroundParticles isDark={false} isPlaying={isPlaying} isVoiceActive={isVoiceActive} />
+      {Platform.OS !== 'web' && (
+        <BackgroundParticles isDark={false} isPlaying={isPlaying} isVoiceActive={isVoiceActive} />
+      )}
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="room/[id]"
