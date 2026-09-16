@@ -4,13 +4,19 @@ import { RoomShareModal } from "../../src/components/room/RoomShareModal";
 import { AmbientSoundscapeModal } from "../../src/components/player/AmbientSoundscapeModal";
 import { CrossfadeSettingsModal } from "../../src/components/player/CrossfadeSettingsModal";
 import { TasteBlendModal } from "../../src/components/room/TasteBlendModal";
-import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles } from "lucide-react-native";
+import { SongDedicationModal } from "../../src/components/room/SongDedicationModal";
+import { SongDedicationBanner } from "../../src/components/room/SongDedicationBanner";
+import { SessionRecapModal } from "../../src/components/room/SessionRecapModal";
+import { RoomThemeModal } from "../../src/components/room/RoomThemeModal";
+import { useRoomThemeStore } from "../../src/store/roomThemeStore";
+import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
 import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
 import { HostModerationModal } from "../../src/components/room/HostModerationModal";
 import { ModerationActionType } from "@sony/types";
 import React, { useState, useEffect } from "react";
+
 import {
   View,
   Text,
@@ -64,7 +70,20 @@ export default function RoomScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const roomId = (id as string) || "room-late-night-1";
-  const palette = colors.light;
+  const { theme, activeDedication } = useRoomThemeStore();
+  const palette = {
+    ...colors.dark,
+    background: theme.background,
+    surface: theme.surface,
+    surfaceHover: theme.surfaceHover,
+    card: theme.card,
+    accent: theme.accent,
+    border: theme.border,
+    borderSubtle: theme.borderSubtle,
+    textPrimary: theme.textPrimary,
+    textSecondary: theme.textSecondary,
+    textTertiary: theme.textTertiary,
+  };
 
   const { token } = useAuthStore((s) => ({ token: s.tokens?.accessToken }));
 
@@ -113,9 +132,13 @@ export default function RoomScreen() {
   const [showSoundscapeModal, setShowSoundscapeModal] = useState(false);
   const [showCrossfadeModal, setShowCrossfadeModal] = useState(false);
   const [showTasteBlendModal, setShowTasteBlendModal] = useState(false);
+  const [showDedicationModal, setShowDedicationModal] = useState(false);
+  const [showRecapModal, setShowRecapModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | "track_end" | null>(null);
   const [sleepRemainingSeconds, setSleepRemainingSeconds] = useState<number | null>(null);
   const [acousticPreset, setAcousticPreset] = useState<AcousticPresetId>("CLEARAUDIO");
+
 
 
   // Sleep timer interval
@@ -225,8 +248,16 @@ export default function RoomScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
+        {/* Active Song Dedication Pinned Banner */}
+        {activeDedication && (
+          <View style={{ marginBottom: spacing.xs }}>
+            <SongDedicationBanner dedication={activeDedication} />
+          </View>
+        )}
+
         {/* Mode Toggle Pill (Artwork vs Live Lyrics) */}
         <View style={styles.viewToggleContainer}>
+
           <View style={[styles.viewTogglePill, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
             <TouchableOpacity
               style={[styles.viewToggleBtn, !showLyrics && { backgroundColor: palette.textPrimary }]}
@@ -407,9 +438,57 @@ export default function RoomScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Quick Tools Row 3 (Song Dedication | Room Memory Recap | Room Theme) */}
+        <View style={[styles.quickToolsRow, { marginTop: 4 }]}>
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: "rgba(236, 72, 153, 0.08)",
+                borderColor: "rgba(236, 72, 153, 0.3)",
+              },
+            ]}
+            onPress={() => setShowDedicationModal(true)}
+          >
+            <Heart size={12} color="#EC4899" style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: "#EC4899" }]}>Dedicate</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: "rgba(16, 185, 129, 0.08)",
+                borderColor: "rgba(16, 185, 129, 0.3)",
+              },
+            ]}
+            onPress={() => setShowRecapModal(true)}
+          >
+            <Award size={12} color="#10B981" style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: "#10B981" }]}>Memory</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.accent,
+              },
+            ]}
+            onPress={() => setShowThemeModal(true)}
+          >
+            <Palette size={12} color={palette.textPrimary} style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: palette.textPrimary }]}>
+              {theme.name.split(" ")[0]}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
 
         {/* Sing Together Live Ducking Status Badge */}
         <View style={{ marginVertical: spacing.sm }}>
+
           <SingTogetherIndicator volume={volume} duckingState={duckingState} isDark={false} />
         </View>
 
@@ -843,7 +922,29 @@ export default function RoomScreen() {
         onClose={() => setShowTasteBlendModal(false)}
         roomTitle={currentRoom?.name || "Late Night Studio"}
       />
+
+      {/* Song Dedication Modal */}
+      <SongDedicationModal
+        visible={showDedicationModal}
+        onClose={() => setShowDedicationModal(false)}
+        currentTrack={currentTrack}
+        roomId={roomId}
+      />
+
+      {/* Session Memory Recap Modal */}
+      <SessionRecapModal
+        visible={showRecapModal}
+        onClose={() => setShowRecapModal(false)}
+        roomName={currentRoom?.name || "Late Night Lounge"}
+      />
+
+      {/* Room Reactive Theme Modal */}
+      <RoomThemeModal
+        visible={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
+      />
     </SafeAreaView>
+
 
   );
 }

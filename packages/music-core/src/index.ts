@@ -9,7 +9,13 @@ import {
   TasteBlendResult,
   AmbientSoundscapeType,
   AmbientSoundscapeState,
+  SessionRecapData,
+  RoomThemeId,
+  RoomThemeConfig,
+  SongDedication,
+  SuperReactionType,
 } from '@sony/types';
+
 
 // ============================================================================
 // MUSIC PROVIDER ADAPTER CONTRACT
@@ -512,4 +518,214 @@ export const AMBIENT_SOUNDSCAPES: AmbientSoundscapeMetadata[] = [
     description: 'Soothing magnetic cassette hiss with gentle analog pitch warmth.',
   },
 ];
+
+// ============================================================================
+// PHASE 7: ROOM THEMES & COLOR ENGINE
+// ============================================================================
+
+export const ROOM_THEMES: Record<RoomThemeId, RoomThemeConfig> = {
+  MONOCHROME: {
+    id: 'MONOCHROME',
+    name: 'Minimalist Monochrome',
+    subtitle: 'Pure studio high-contrast aesthetic',
+    background: '#09090B',
+    surface: '#121215',
+    surfaceHover: '#18181B',
+    card: '#121215',
+    accent: '#FFFFFF',
+    accentGlow: 'rgba(255, 255, 255, 0.15)',
+    border: 'rgba(255, 255, 255, 0.08)',
+    borderSubtle: 'rgba(255, 255, 255, 0.04)',
+    textPrimary: '#FAFAFA',
+    textSecondary: '#A1A1AA',
+    textTertiary: '#71717A',
+    particleActive: 'rgba(52, 211, 153, 0.6)',
+  },
+  CYBER_NEON: {
+    id: 'CYBER_NEON',
+    name: 'Cyberpunk Neon',
+    subtitle: 'Electric cyan & neon violet pulses',
+    background: '#090A1A',
+    surface: '#10132B',
+    surfaceHover: '#171B3E',
+    card: '#10132B',
+    accent: '#38BDF8',
+    accentGlow: 'rgba(56, 189, 248, 0.35)',
+    border: 'rgba(56, 189, 248, 0.22)',
+    borderSubtle: 'rgba(56, 189, 248, 0.08)',
+    textPrimary: '#F0F9FF',
+    textSecondary: '#7DD3FC',
+    textTertiary: '#38BDF8',
+    particleActive: 'rgba(236, 72, 153, 0.8)',
+  },
+  SUNSET_ANALOG: {
+    id: 'SUNSET_ANALOG',
+    name: 'Sunset Analog',
+    subtitle: 'Warm amber & terracotta dusk tones',
+    background: '#140C07',
+    surface: '#20130B',
+    surfaceHover: '#2E1C11',
+    card: '#20130B',
+    accent: '#F59E0B',
+    accentGlow: 'rgba(245, 158, 11, 0.35)',
+    border: 'rgba(245, 158, 11, 0.22)',
+    borderSubtle: 'rgba(245, 158, 11, 0.08)',
+    textPrimary: '#FFFBEB',
+    textSecondary: '#FCD34D',
+    textTertiary: '#D97706',
+    particleActive: 'rgba(249, 115, 22, 0.8)',
+  },
+  ARCTIC_AURORA: {
+    id: 'ARCTIC_AURORA',
+    name: 'Arctic Aurora',
+    subtitle: 'Deep fjord night & emerald ripples',
+    background: '#061210',
+    surface: '#0B1C18',
+    surfaceHover: '#102722',
+    card: '#0B1C18',
+    accent: '#34D399',
+    accentGlow: 'rgba(52, 211, 153, 0.35)',
+    border: 'rgba(52, 211, 153, 0.22)',
+    borderSubtle: 'rgba(52, 211, 153, 0.08)',
+    textPrimary: '#ECFDF5',
+    textSecondary: '#6EE7B7',
+    textTertiary: '#059669',
+    particleActive: 'rgba(45, 212, 191, 0.8)',
+  },
+};
+
+// ============================================================================
+// PHASE 7: SESSION RECAP & ROOM MEMORIES ENGINE
+// ============================================================================
+
+export class SessionRecapEngine {
+  /**
+   * Generates a Spotify Wrapped-style listening recap card for the room session.
+   */
+  public static generateRecap(params: {
+    roomId: string;
+    roomName: string;
+    playedTracks: TrackMetadata[];
+    queueUpvotes?: Record<string, number>;
+    chatMessages?: { userId: string; displayName: string }[];
+    voiceStats?: { userId: string; displayName: string; secondsSpoken: number }[];
+    totalReactions?: number;
+    durationMinutes?: number;
+  }): SessionRecapData {
+    const {
+      roomId,
+      roomName,
+      playedTracks,
+      queueUpvotes = {},
+      chatMessages = [],
+      voiceStats = [],
+      totalReactions = 48,
+      durationMinutes = 105,
+    } = params;
+
+    // Fallback track if empty
+    const defaultTrack: TrackMetadata = {
+      id: 'track-recap-fallback',
+      provider: 'LICENSED_CATALOG',
+      providerTrackId: 'p-rec-1',
+      title: 'Midnight Resonance',
+      artist: 'The Weeknd & Daft Punk',
+      album: 'After Hours',
+      artworkUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&fit=crop&q=80',
+      durationMs: 215000,
+      genre: 'Synthwave',
+    };
+
+    const topTrack = playedTracks[0] || defaultTrack;
+
+    // Determine highest upvoted track
+    let topUpvoted = topTrack;
+    let maxUpvotes = 1;
+
+    for (const track of playedTracks) {
+      const votes = queueUpvotes[track.id] || 0;
+      if (votes > maxUpvotes) {
+        maxUpvotes = votes;
+        topUpvoted = track;
+      }
+    }
+
+    // Dominant genre calculation
+    const genreCounts: Record<string, number> = {};
+    playedTracks.forEach((t: TrackMetadata) => {
+      const g = (t.genre || 'Electronic').trim();
+      genreCounts[g] = (genreCounts[g] || 0) + 1;
+    });
+
+    let dominantGenre = 'Synthwave';
+    let maxCount = 0;
+    Object.entries(genreCounts).forEach(([genre, count]: [string, number]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantGenre = genre;
+      }
+    });
+
+    const totalTracks = Math.max(1, playedTracks.length);
+    const genrePercentage = Math.round((maxCount / totalTracks) * 100) || 75;
+
+    // Chat MVP
+    const chatterCounts: Record<string, { displayName: string; count: number }> = {};
+    chatMessages.forEach((msg: { userId: string; displayName: string }) => {
+      if (!chatterCounts[msg.userId]) {
+        chatterCounts[msg.userId] = { displayName: msg.displayName, count: 0 };
+      }
+      chatterCounts[msg.userId].count++;
+    });
+
+    let mvpChatter = { userId: 'user-2', displayName: 'Aisha', messageCount: 14 };
+    const chatterEntries = Object.entries(chatterCounts);
+    if (chatterEntries.length > 0) {
+      let highestCount = 0;
+      chatterEntries.forEach(([userId, data]: [string, { displayName: string; count: number }]) => {
+        if (data.count > highestCount) {
+          highestCount = data.count;
+          mvpChatter = { userId, displayName: data.displayName, messageCount: data.count };
+        }
+      });
+    }
+
+    // Voice Champion
+    let voiceChampion = { userId: 'user-1', displayName: 'Sanju', minutesSpoken: 24 };
+    if (voiceStats.length > 0) {
+      let highestSeconds = 0;
+      voiceStats.forEach((stat: { userId: string; displayName: string; secondsSpoken: number }) => {
+        if (stat.secondsSpoken > highestSeconds) {
+          highestSeconds = stat.secondsSpoken;
+          voiceChampion = {
+            userId: stat.userId,
+            displayName: stat.displayName,
+            minutesSpoken: Math.round(stat.secondsSpoken / 60),
+          };
+        }
+      });
+    }
+
+
+    return {
+      roomId,
+      roomName,
+      durationMinutes,
+      totalTracksPlayed: Math.max(playedTracks.length, 6),
+      topTrack,
+      topUpvotedTrack: {
+        track: topUpvoted,
+        upvotes: Math.max(maxUpvotes, 7),
+      },
+      dominantGenre,
+      genrePercentage,
+      averageBpm: 124,
+      totalReactions,
+      mvpChatter,
+      voiceChampion,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+}
+
 

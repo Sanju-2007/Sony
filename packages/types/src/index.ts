@@ -318,3 +318,80 @@ export interface TasteBlendResult {
   suggestedBlendTracks: TrackMetadata[];
 }
 
+// ============================================================================
+// PHASE 7: SONG DEDICATIONS, SESSION RECAP & REACTIVE ROOM THEMES
+// ============================================================================
+
+export type DedicationBadgeStyle = 'GOLDEN' | 'NEON' | 'HEART' | 'CLASSIC';
+
+export interface SongDedication {
+  id: string;
+  roomId: string;
+  trackId: string;
+  fromUserId: string;
+  fromUserName: string;
+  toUserId?: string;
+  toUserName: string;
+  message: string;
+  badgeStyle: DedicationBadgeStyle;
+  createdAt: string;
+}
+
+export type SuperReactionType = 'GOLDEN_VINYL' | 'DISCO_BLAST' | 'HEART_BURST' | 'FLAME_SURGE';
+
+export interface SuperReactionPayload {
+  userId: string;
+  roomId: string;
+  type: SuperReactionType;
+  userName: string;
+  timestamp: number;
+}
+
+export interface SessionRecapData {
+  roomId: string;
+  roomName: string;
+  durationMinutes: number;
+  totalTracksPlayed: number;
+  topTrack: TrackMetadata;
+  topUpvotedTrack: {
+    track: TrackMetadata;
+    upvotes: number;
+  };
+  dominantGenre: string;
+  genrePercentage: number;
+  averageBpm: number;
+  totalReactions: number;
+  mvpChatter: {
+    userId: string;
+    displayName: string;
+    messageCount: number;
+  };
+  voiceChampion: {
+    userId: string;
+    displayName: string;
+    minutesSpoken: number;
+  };
+  generatedAt: string;
+}
+
+export type RoomThemeId = 'MONOCHROME' | 'CYBER_NEON' | 'SUNSET_ANALOG' | 'ARCTIC_AURORA';
+
+export interface RoomThemeConfig {
+  id: RoomThemeId;
+  name: string;
+  subtitle: string;
+  background: string;
+  surface: string;
+  surfaceHover: string;
+  card: string;
+  accent: string;
+  accentGlow: string;
+  border: string;
+  borderSubtle: string;
+  textPrimary: string;
+  textSecondary: string;
+  textTertiary: string;
+  particleActive: string;
+}
+
+
