@@ -1121,7 +1121,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.md,
-    height: 52,
+    height: 54,
+    maxWidth: 880,
+    width: "100%",
+    alignSelf: "center",
   },
   iconBtn: {
     width: 40,
@@ -1153,7 +1156,10 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: 40,
+    paddingBottom: 60,
+    maxWidth: 880,
+    width: "100%",
+    alignSelf: "center",
   },
   artworkContainer: {
     alignItems: "center",

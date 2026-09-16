@@ -190,7 +190,14 @@ export default function DiscoverScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 40 },
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: 100,
+    maxWidth: 1200,
+    width: "100%",
+    alignSelf: "center",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -207,13 +214,14 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.semibold,
+    fontWeight: typography.weights.bold,
     letterSpacing: typography.letterSpacing.tight,
   },
   createBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
+    backgroundColor: "#6366F1",
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: radii.full,
   },
@@ -225,8 +233,8 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    height: 44,
-    borderRadius: radii.md,
+    height: 48,
+    borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.lg,
@@ -243,23 +251,27 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    letterSpacing: typography.letterSpacing.tight,
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   trendingList: {
-    gap: spacing.sm,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
   },
   trendingCard: {
+    flex: 1,
+    minWidth: 300,
     flexDirection: "row",
     alignItems: "center",
     padding: spacing.md,
-    borderRadius: radii.lg,
+    borderRadius: 14,
     borderWidth: 1,
   },
   trendingThumb: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: radii.sm,
   },
   trendingInfo: {
@@ -267,11 +279,12 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   trendingName: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   trendingTopic: {
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 2,
   },
   trendingTrackRow: {
@@ -280,7 +293,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   trendingTrack: {
-    fontSize: 11,
+    fontSize: 12,
   },
   listenerPill: {
     flexDirection: "row",
@@ -291,18 +304,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   listenerCount: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
+    fontSize: 12,
+    fontWeight: "600",
   },
   categoriesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 16,
   },
   categoryTile: {
-    width: "48%",
-    height: 110,
-    borderRadius: radii.lg,
+    flex: 1,
+    minWidth: 260,
+    height: 120,
+    borderRadius: 14,
     overflow: "hidden",
     position: "relative",
     justifyContent: "flex-end",
@@ -316,20 +330,20 @@ const styles = StyleSheet.create({
   },
   categoryTileOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
   },
   categoryTileTextContainer: {
     zIndex: 2,
   },
   categoryTileTitle: {
     color: "#FFFFFF",
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    letterSpacing: typography.letterSpacing.tight,
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   categoryTileCount: {
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 10,
+    color: "rgba(255, 255, 255, 0.75)",
+    fontSize: 11,
     marginTop: 2,
   },
 });

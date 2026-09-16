@@ -93,7 +93,7 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.liveIndicator}>
               <View style={[styles.liveDot, { backgroundColor: palette.speaking }]} />
-              <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Friends listening</Text>
+              <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Live Featured Party</Text>
             </View>
           </View>
 
@@ -107,16 +107,21 @@ export default function HomeScreen() {
               style={styles.heroArtwork}
             />
             <View style={styles.heroInfo}>
+              <View style={styles.heroBadgeRow}>
+                <View style={styles.livePill}>
+                  <View style={[styles.pulseDot, { backgroundColor: palette.speaking }]} />
+                  <Text style={styles.livePillText}>LIVE NOW · 4 SYNCED</Text>
+                </View>
+              </View>
               <Text style={[styles.heroTrack, { color: palette.textPrimary }]} numberOfLines={1}>
                 {currentTrack?.title || "Blinding Lights"}
               </Text>
               <Text style={[styles.heroArtist, { color: palette.textSecondary }]}>
-                {currentTrack?.artist || "The Weeknd"}
+                {currentTrack?.artist || "The Weeknd"} · Late Night Family
               </Text>
-              <View style={styles.heroMeta}>
-                <View style={[styles.pulseDot, { backgroundColor: palette.speaking }]} />
-                <Text style={[styles.heroListeners, { color: palette.textTertiary }]}>4 listening in Late Night Family</Text>
-              </View>
+            </View>
+            <View style={styles.joinBtn}>
+              <Text style={styles.joinBtnText}>Join Stage</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -127,32 +132,34 @@ export default function HomeScreen() {
             <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Rooms · Live now</Text>
           </View>
 
-          {rooms.map((room) => (
-            <TouchableOpacity
-              key={room.id}
-              activeOpacity={0.85}
-              style={[styles.roomCard, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}
-              onPress={() => router.push("/room/" + room.id)}
-            >
-              <View style={styles.roomHeaderRow}>
-                <View style={styles.roomTitleGroup}>
-                  <Text style={[styles.roomName, { color: palette.textPrimary }]}>{room.name}</Text>
-                  <Text style={[styles.roomTopic, { color: palette.textTertiary }]}>{room.topic}</Text>
+          <View style={styles.roomsGrid}>
+            {rooms.map((room) => (
+              <TouchableOpacity
+                key={room.id}
+                activeOpacity={0.85}
+                style={[styles.roomCard, { backgroundColor: palette.card, borderColor: palette.border }]}
+                onPress={() => router.push("/room/" + room.id)}
+              >
+                <View style={styles.roomHeaderRow}>
+                  <View style={styles.roomTitleGroup}>
+                    <Text style={[styles.roomName, { color: palette.textPrimary }]}>{room.name}</Text>
+                    <Text style={[styles.roomTopic, { color: palette.textTertiary }]}>{room.topic}</Text>
+                  </View>
+                  <View style={[styles.listenerPill, { backgroundColor: "rgba(99, 102, 241, 0.12)", borderColor: "rgba(99, 102, 241, 0.25)" }]}>
+                    <Users size={12} color="#818CF8" style={{ marginRight: 4 }} />
+                    <Text style={[styles.listenerCount, { color: "#818CF8" }]}>{room.listeners}</Text>
+                  </View>
                 </View>
-                <View style={[styles.listenerPill, { backgroundColor: palette.background, borderColor: palette.border }]}>
-                  <Users size={12} color={palette.textSecondary} style={{ marginRight: 4 }} />
-                  <Text style={[styles.listenerCount, { color: palette.textSecondary }]}>{room.listeners}</Text>
-                </View>
-              </View>
 
-              <View style={styles.roomTrackRow}>
-                <Music2 size={13} color={palette.textSecondary} style={{ marginRight: 6 }} />
-                <Text style={[styles.roomTrackName, { color: palette.textSecondary }]} numberOfLines={1}>
-                  {room.currentTrack} · {room.artist}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.roomTrackRow}>
+                  <Music2 size={13} color="#94A3B8" style={{ marginRight: 6 }} />
+                  <Text style={[styles.roomTrackName, { color: "#94A3B8" }] } numberOfLines={1}>
+                    {room.currentTrack} · {room.artist}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </ScrollView>
 
@@ -182,7 +189,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: 40,
+    paddingTop: spacing.md,
+    paddingBottom: 100,
+    maxWidth: 1200,
+    width: "100%",
+    alignSelf: "center",
   },
   header: {
     flexDirection: "row",
@@ -200,7 +211,7 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.semibold,
+    fontWeight: typography.weights.bold,
     letterSpacing: typography.letterSpacing.tight,
   },
   createButton: {
@@ -214,8 +225,8 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    height: 46,
-    borderRadius: radii.md,
+    height: 48,
+    borderRadius: 12,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     marginBottom: spacing.xl,
@@ -237,45 +248,70 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     marginRight: 8,
   },
   sectionTitle: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    letterSpacing: typography.letterSpacing.tight,
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   heroCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: spacing.md,
-    borderRadius: radii.xl,
+    borderRadius: 16,
     borderWidth: 1,
   },
   heroArtwork: {
-    width: 72,
-    height: 72,
-    borderRadius: radii.md,
+    width: 76,
+    height: 76,
+    borderRadius: 12,
   },
   heroInfo: {
     flex: 1,
     marginLeft: spacing.md,
   },
-  heroTrack: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
-    letterSpacing: typography.letterSpacing.tight,
+  heroBadgeRow: {
+    marginBottom: 4,
   },
-  heroArtist: {
-    fontSize: typography.sizes.sm,
-    marginTop: 2,
-  },
-  heroMeta: {
+  livePill: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  livePillText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#10B981",
+    letterSpacing: 0.5,
+  },
+  heroTrack: {
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
+  heroArtist: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  joinBtn: {
+    backgroundColor: "#6366F1",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginLeft: 12,
+  },
+  joinBtnText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
   },
   pulseDot: {
     width: 6,
@@ -283,14 +319,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     marginRight: 6,
   },
-  heroListeners: {
-    fontSize: typography.sizes.xs,
+  roomsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
   },
   roomCard: {
+    flex: 1,
+    minWidth: 280,
     padding: spacing.md,
-    borderRadius: radii.lg,
+    borderRadius: 14,
     borderWidth: 1,
-    marginBottom: spacing.sm,
   },
   roomHeaderRow: {
     flexDirection: "row",
@@ -302,12 +341,12 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   roomName: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
-    letterSpacing: typography.letterSpacing.tight,
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   roomTopic: {
-    fontSize: typography.sizes.xs,
+    fontSize: 12,
     marginTop: 2,
   },
   listenerPill: {
@@ -319,16 +358,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   listenerCount: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
+    fontSize: 12,
+    fontWeight: "600",
   },
   roomTrackRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   roomTrackName: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.regular,
+    fontSize: 12,
+    fontWeight: "500",
   },
 });

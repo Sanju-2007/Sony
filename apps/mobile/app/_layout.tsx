@@ -38,20 +38,14 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Platform.OS === 'web' ? '#0D0F14' : colors.light.background,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#090A0F',
+    width: '100%',
+    height: '100%',
   },
   appShell: {
     flex: 1,
     width: '100%',
-    maxWidth: Platform.OS === 'web' ? 520 : '100%',
-    backgroundColor: colors.light.background,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.1)',
-          overflow: 'hidden',
-        } as any)
-      : {}),
+    height: '100%',
+    backgroundColor: '#090A0F',
   },
 });
