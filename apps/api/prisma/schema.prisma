@@ -1,0 +1,270 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum RoomType {
+  PUBLIC
+  PRIVATE
+}
+
+enum RoomStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum RoomMemberRole {
+  HOST
+  MODERATOR
+  LISTENER
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum MessageType {
+  TEXT
+  VOICE
+  SYSTEM
+}
+
+model User {
+  id               String       @id @default(uuid())
+  email            String       @unique
+  username         String       @unique
+  passwordHash     String?
+  authProvider     String       @default("LOCAL") // LOCAL, GOOGLE, APPLE
+  authProviderId   String?
+  role             UserRole     @default(USER)
+  status           UserStatus   @default(ACTIVE)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  profile          Profile?
+  initiatedFriends Friendship[] @relation("FriendshipRequester")
+  receivedFriends  Friendship[] @relation("FriendshipAddressee")
+  blocksInitiated  Block[]      @relation("Blocker")
+  blocksReceived   Block[]      @relation("Blocked")
+  roomMembers      RoomMember[]
+  roomsOwned       Room[]       @relation("RoomOwner")
+  messagesSent     Message[]    @relation("MessageAuthor")
+  voiceMessages    VoiceMessage[]
+  sessions         ListeningSession[]
+  notifications    Notification[]
+
+  @@index([username])
+  @@index([email])
+}
+
+model Profile {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName    String
+  bio            String?
+  avatarUrl      String?
+  isPrivate      Boolean   @default(false)
+  favoriteGenres String[]  @default([])
+  lastSeenAt     DateTime?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Friendship {
+  id          String           @id @default(uuid())
+  requesterId String
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addresseeId String
+  addressee   User             @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId])
+  @@index([addresseeId])
+}
+
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+model Room {
+  id              String         @id @default(uuid())
+  name            String
+  slug            String         @unique
+  description     String?
+  type            RoomType       @default(PUBLIC)
+  ownerId         String
+  owner           User           @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  coverImageUrl   String?
+  inviteCode      String?        @unique
+  maxParticipants Int            @default(50)
+  status          RoomStatus     @default(ACTIVE)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  members         RoomMember[]
+  playbackState   PlaybackState?
+  queueItems      QueueItem[]
+  messages        Message[]
+
+  @@index([type, status, createdAt])
+  @@index([ownerId])
+}
+
+model RoomMember {
+  id            String         @id @default(uuid())
+  roomId        String
+  room          Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role          RoomMemberRole @default(LISTENER)
+  isMuted       Boolean        @default(false)
+  isDeafened    Boolean        @default(false)
+  joinedAt      DateTime       @default(now())
+  lastHeartbeat DateTime       @default(now())
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+}
+
+model PlaybackState {
+  id              String   @id @default(uuid())
+  roomId          String   @unique
+  room            Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  provider        String   @default("LICENSED_CATALOG") // APPLE_MUSIC, SPOTIFY, LICENSED_CATALOG
+  trackId         String
+  trackTitle      String
+  artistName      String
+  albumName       String?
+  artworkUrl      String?
+  durationMs      Int      @default(0)
+  positionMs      Int      @default(0)
+  playbackRate    Float    @default(1.0)
+  isPlaying       Boolean  @default(false)
+  serverTimestamp BigInt
+  version         Int      @default(1)
+  updatedByUserId String
+  updatedAt       DateTime @updatedAt
+
+  @@index([roomId])
+}
+
+model QueueItem {
+  id              String   @id @default(uuid())
+  roomId          String
+  room            Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  provider        String
+  trackId         String
+  trackTitle      String
+  artistName      String
+  artworkUrl      String?
+  durationMs      Int
+  positionOrder   Int
+  addedByUserId   String
+  createdAt       DateTime @default(now())
+
+  @@index([roomId, positionOrder])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  roomId         String?
+  room           Room?        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  conversationId String?
+  senderId       String
+  sender         User         @relation("MessageAuthor", fields: [senderId], references: [id], onDelete: Cascade)
+  content        String
+  type           MessageType  @default(TEXT)
+  voiceMessageId String?      @unique
+  voiceMessage   VoiceMessage? @relation(fields: [voiceMessageId], references: [id], onDelete: SetNull)
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([roomId, createdAt])
+  @@index([conversationId, createdAt])
+}
+
+model VoiceMessage {
+  id               String    @id @default(uuid())
+  senderId         String
+  sender           User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  storageKey       String    @unique
+  durationSec      Int
+  waveformMetadata Json      // Array of normalized amplitude floats [0.0 - 1.0]
+  fileSizeBytes    Int
+  mimeType         String    @default("audio/mp4")
+  createdAt        DateTime  @default(now())
+
+  message          Message?
+
+  @@index([senderId])
+}
+
+model ListeningSession {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider           String
+  trackId            String
+  trackTitle         String
+  artistName         String
+  durationListenedMs Int
+  startedAt          DateTime @default(now())
+
+  @@index([userId, startedAt])
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  reporterId  String
+  targetType  String   // USER, ROOM, MESSAGE
+  targetId    String
+  reason      String
+  details     String?
+  status      String   @default("PENDING") // PENDING, RESOLVED, DISMISSED
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // FRIEND_REQUEST, FRIEND_ACCEPTED, ROOM_INVITE, DIRECT_MESSAGE, HOST_TRANSFERRED
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+}

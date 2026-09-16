@@ -1,0 +1,27 @@
+{
+  "name": "social-music-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production-grade social music listening and realtime presence platform",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "api:dev": "npm run start:dev --workspace=@sony/api",
+    "mobile:start": "npm run start --workspace=@sony/mobile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
