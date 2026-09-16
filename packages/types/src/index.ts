@@ -189,6 +189,10 @@ export interface DuckingConfig {
 
 // --- SOCKET CONTRACTS ---
 export interface ClientToServerEvents {
+  "queue:add": (data: { roomId: string; track: TrackMetadata }) => void;
+  "queue:remove": (data: { roomId: string; queueItemId: string }) => void;
+  "queue:upvote": (data: { roomId: string; queueItemId: string }) => void;
+  "voice:speaking": (data: { roomId: string; isSpeaking: boolean; audioLevel?: number }) => void;
   'room:join': (data: { roomId: string; inviteCode?: string }) => void;
   'room:leave': (data: { roomId: string }) => void;
   'playback:command': (data: PlaybackCommandPayload) => void;
@@ -200,6 +204,7 @@ export interface ClientToServerEvents {
 }
 
 export interface ServerToClientEvents {
+  "queue:updated": (data: { roomId: string; queue: QueueItemDto[] }) => void;
   'room:state': (data: { room: RoomDetails; members: RoomMemberInfo[]; playback: PlaybackStateVector }) => void;
   'room:member_joined': (data: { member: RoomMemberInfo }) => void;
   'room:member_left': (data: { userId: string; reason?: string }) => void;

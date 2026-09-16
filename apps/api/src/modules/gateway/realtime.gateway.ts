@@ -19,6 +19,8 @@ import {
   ClientToServerEvents,
   ServerToClientEvents,
   ReactionBurstPayload,
+  QueueItemDto,
+  TrackMetadata,
 } from '@sony/types';
 
 @WebSocketGateway({
@@ -30,6 +32,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   server!: Server<ClientToServerEvents, ServerToClientEvents>;
 
   private readonly logger = new Logger(RealtimeGateway.name);
+  private readonly roomQueues = new Map<string, QueueItemDto[]>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -264,5 +267,92 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     if (userId) {
       await this.redis.set(`presence:${userId}`, data.status, 60);
     }
+  }
+  @SubscribeMessage("queue:add")
+  async handleQueueAdd(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; track: TrackMetadata },
+  ) {
+    const userId = socket.data.userId;
+    const username = socket.data.username || "Anonymous";
+    if (!userId || !data.track) return;
+
+    const current = this.roomQueues.get(data.roomId) || [];
+    const newItem: QueueItemDto = {
+      id: "queue-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+      roomId: data.roomId,
+      track: data.track,
+      positionOrder: current.length,
+      addedBy: {
+        id: userId,
+        username,
+        displayName: username,
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [...current, newItem];
+    this.roomQueues.set(data.roomId, updated);
+
+    // Broadcast updated queue to all room members
+    this.server.to(data.roomId).emit("queue:updated", {
+      roomId: data.roomId,
+      queue: updated,
+    });
+  }
+
+  @SubscribeMessage("queue:remove")
+  async handleQueueRemove(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; queueItemId: string },
+  ) {
+    const current = this.roomQueues.get(data.roomId) || [];
+    const updated = current.filter((item) => item.id !== data.queueItemId);
+    this.roomQueues.set(data.roomId, updated);
+
+    this.server.to(data.roomId).emit("queue:updated", {
+      roomId: data.roomId,
+      queue: updated,
+    });
+  }
+
+  @SubscribeMessage("queue:upvote")
+  async handleQueueUpvote(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; queueItemId: string },
+  ) {
+    const current = this.roomQueues.get(data.roomId) || [];
+    const updated = current.map((item) => {
+      if (item.id === data.queueItemId) {
+        return {
+          ...item,
+          positionOrder: Math.max(0, item.positionOrder - 1),
+        };
+      }
+      return item;
+    });
+
+    this.roomQueues.set(data.roomId, updated);
+    this.server.to(data.roomId).emit("queue:updated", {
+      roomId: data.roomId,
+      queue: updated,
+    });
+  }
+
+  @SubscribeMessage("voice:speaking")
+  handleVoiceSpeaking(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; isSpeaking: boolean; audioLevel?: number },
+  ) {
+    const userId = socket.data.userId;
+    if (!userId) return;
+
+    // Broadcast to everyone else in the room so their client ducking controller triggers
+    socket.to(data.roomId).emit("voice:speaking", {
+      userId,
+      roomId: data.roomId,
+      isSpeaking: data.isSpeaking,
+      audioLevel: data.audioLevel ?? 0.8,
+    });
   }
 }

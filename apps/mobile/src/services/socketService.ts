@@ -8,6 +8,9 @@ import {
   ReactionBurstPayload,
   RoomMemberInfo,
   RoomDetails,
+  QueueItemDto,
+  TrackMetadata,
+  VoiceSpeakingPayload,
 } from '@sony/types';
 import { useRoomStore } from '../store/roomStore';
 import { usePlaybackStore } from '../store/playbackStore';
@@ -72,6 +75,32 @@ class SocketService {
     this.socket.on('reaction:burst', (data: ReactionBurstPayload) => {
       useRoomStore.getState().addReaction(data);
     });
+
+    // Collaborative Queue updates
+    this.socket.on("queue:updated", (data: { roomId: string; queue: QueueItemDto[] }) => {
+      usePlaybackStore.setState({
+        queue: data.queue.map((q) => ({
+          ...q,
+          upvotes: (q as any).upvotes || 1,
+          hasUpvoted: false,
+        })),
+      });
+    });
+
+    // Remote Voice Speaking event -> Triggers client ducking!
+    this.socket.on("voice:speaking", (data: VoiceSpeakingPayload) => {
+      // Update speaking state for the member in room roster
+      const members = useRoomStore.getState().members;
+      useRoomStore.setState({
+        members: members.map((m) =>
+          m.userId === data.userId ? { ...m, isSpeaking: data.isSpeaking } : m
+        ),
+      });
+
+      // Trigger automatic audio ducking on local playback!
+      usePlaybackStore.getState().setVoiceActive(data.isSpeaking);
+    });
+
   }
 
   disconnect() {
@@ -100,6 +129,22 @@ class SocketService {
 
   sendReaction(roomId: string, emoji: string) {
     this.socket?.emit('reaction:send', { roomId, emoji });
+  }
+
+  addToQueue(roomId: string, track: TrackMetadata) {
+    this.socket?.emit("queue:add", { roomId, track });
+  }
+
+  removeFromQueue(roomId: string, queueItemId: string) {
+    this.socket?.emit("queue:remove", { roomId, queueItemId });
+  }
+
+  upvoteQueueItem(roomId: string, queueItemId: string) {
+    this.socket?.emit("queue:upvote", { roomId, queueItemId });
+  }
+
+  sendVoiceSpeaking(roomId: string, isSpeaking: boolean, audioLevel: number = 0.8) {
+    this.socket?.emit("voice:speaking", { roomId, isSpeaking, audioLevel });
   }
 }
 
