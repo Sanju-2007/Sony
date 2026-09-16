@@ -2,7 +2,7 @@
 
 > *"Let's listen together even when we're far apart."*
 
-A production-grade, cross-platform social music listening and realtime presence platform. Built with a minimalist monochrome aesthetic, fluid typography, sparse dynamic background particles, and synchronized multi-device playback.
+A production-grade, cross-platform social music listening and realtime presence platform. Built with a minimalist monochrome aesthetic, fluid typography, sparse dynamic background particles, synchronized multi-device playback, and low-latency voice rooms.
 
 ---
 
@@ -11,19 +11,33 @@ A production-grade, cross-platform social music listening and realtime presence 
 1. **Zero Copyrighted Audio Relay**:
    - The backend and WebRTC channels **never** download, proxy, stream, or cache copyrighted commercial audio.
    - All playback is driven directly on the user's client device via authorized provider SDKs (Apple Music MusicKit, Spotify Web Playback / App Remote, or Licensed Catalogs).
+
 2. **Authoritative Playback Synchronization (`PlaybackSyncEngine`)**:
    - Event-driven state vectors with client-side clock extrapolation.
-   - Micro-drift (< 150ms): Ignored for seamless playback.
-   - Moderate drift (150ms – 800ms): Playback rate is smoothly nudged (0.95x / 1.05x) to eliminate audible pops/clicks.
-   - Macro drift (> 800ms): Hard seek to authoritative target position.
+   - **Micro-drift (< 150ms)**: Ignored (`IN_SYNC` / `NOOP`) for seamless playback without audible clicks.
+   - **Moderate drift (150ms – 800ms)**: Playback rate is smoothly nudged (0.95x / 1.05x) to eliminate pitch warps and clicks.
+   - **Macro drift (> 800ms)**: Hard seek to authoritative target position.
+
 3. **Audio Ducking State Machine ("Sing Together")**:
    - Realtime voice chat operates via LiveKit WebRTC SFU.
-   - When voice activity is detected (locally or remotely), music volume automatically attenuates to **40% over 150ms** (exponential ease-out).
+   - When voice activity is detected (locally or from remote participants via WebSocket broadcast), music volume automatically attenuates to **40% over 150ms** (exponential ease-out).
    - An **800ms hold time** prevents volume pumping during natural speech pauses.
    - Volume fades smoothly back to **100% over 500ms** when speech ends.
-4. **Minimalist Aesthetic & Dynamic Particles**:
-   - High whitespace, crisp typography, and 24 sparse floating particles running declaratively on native threads via React Native Reanimated.
-   - Particles react subtly to music cadence and voice activity.
+   - Supports 4 configurable profiles: **Sing Together (40%)**, **DJ / Commentary (20%)**, **Subtle Bed (65%)**, and **Disabled (100%)**.
+
+4. **Collaborative Room Queue with Community Prioritization**:
+   - Realtime WebSocket-synchronized queue (`queue:add`, `queue:remove`, `queue:upvote`, `queue:updated`).
+   - Listeners can upvote queued songs to increase playback priority.
+   - Host skip controls and instant track injection.
+
+5. **Persistent Floating MiniPlayer**:
+   - Global floating player positioned above bottom tabs across all application screens.
+   - Visual progress bar, track metadata, live room indicator, play/pause, and skip controls.
+   - One-tap gesture expands immediately into the fullscreen immersive room view.
+
+6. **Interactive Voice Messaging & Waveform Visualization**:
+   - Multi-bar normalized waveforms with played-progress fill and timing.
+   - "Hold to record" simulator with real-time timer and voice note creation.
 
 ---
 
@@ -38,20 +52,22 @@ A production-grade, cross-platform social music listening and realtime presence 
 │   │   │   ├── modules/users/ # Profiles, Privacy, Friends
 │   │   │   ├── modules/rooms/ # Public & Private Room Lifecycle, Host Election
 │   │   │   ├── modules/sync/  # Authoritative Playback State Vector Service
-│   │   │   └── modules/gateway/ # Socket.IO Realtime Gateway (Presence, Chat, Reactions)
-│   │   └── test/              # Unit & Integration Tests (Jest)
+│   │   │   ├── modules/voice/ # LiveKit WebRTC SFU Token Generation
+│   │   │   ├── modules/music/ # Licensed Catalog & Search Service
+│   │   │   └── modules/gateway/ # Socket.IO Gateway (Presence, Chat, Queue, Voice)
+│   │   └── test/              # 7 Unit & End-to-End Test Suites (26 Tests)
 │   │
 │   └── mobile/                # React Native + Expo Mobile Application
 │       ├── app/
 │       │   ├── (tabs)/        # Home, Discover, Friends, Messages, Profile
-│       │   └── room/[id].tsx  # Fullscreen Immersive Room View
+│       │   └── room/[id].tsx  # Fullscreen Room (Chat, Voice Stage, Queue Tabs)
 │       └── src/
-│           ├── components/    # BackgroundParticles, ScrubBar, SingTogetherIndicator, Reactions
+│           ├── components/    # MiniPlayer, ScrubBar, MusicSearchModal, CreateRoomModal
 │           ├── store/         # Zustand Stores (authStore, playbackStore, roomStore)
 │           └── theme/         # Design Tokens (Monochrome palette, Typography, Radii)
 │
 ├── packages/
-│   ├── types/                 # Shared Protocol Contracts & DTOs
+│   ├── types/                 # Shared Protocol Contracts, DTOs & Socket Events
 │   ├── music-core/            # MusicProvider Abstraction & DriftCalculator
 │   └── audio-ducking/         # Audio Ducking State Machine
 │
@@ -79,14 +95,12 @@ npm run infra:up
 ```
 *Spins up PostgreSQL on `5432`, Redis on `6379`, MinIO on `9000/9001`, and LiveKit on `7880`.*
 
-### 4. Build Shared Packages & Run Backend
+### 4. Build Monorepo & Run Backend
 ```bash
-# Build shared packages
-npm run build --workspace=@sony/types
-npm run build --workspace=@sony/music-core
-npm run build --workspace=@sony/audio-ducking
+# Build all packages and NestJS API
+npm run build
 
-# Start NestJS API in watch mode
+# Start NestJS API in dev watch mode
 npm run api:dev
 ```
 API runs on `http://localhost:4000/api/v1` with Socket.IO on `/realtime`.
@@ -97,8 +111,15 @@ npm run mobile:start
 ```
 Runs Metro bundler for iOS, Android, and Web (`w` to open web preview).
 
+To export a production web bundle:
+```bash
+npm run mobile:build
+```
+
 ### 6. Run Test Suite & Typecheck
 ```bash
 npm run typecheck
 npm test
 ```
+
+All 7 test suites (26 tests) pass with zero TypeScript errors.
