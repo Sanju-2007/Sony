@@ -1,3 +1,7 @@
+import { SleepTimerModal } from "../../src/components/player/SleepTimerModal";
+import { AcousticPresetsModal, AcousticPresetId } from "../../src/components/player/AcousticPresetsModal";
+import { RoomShareModal } from "../../src/components/room/RoomShareModal";
+import { Moon, Share2, Disc3 } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
 import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
@@ -98,6 +102,45 @@ export default function RoomScreen() {
   const [hasRaisedHand, setHasRaisedHand] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showModerationModal, setShowModerationModal] = useState(false);
+  const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
+  const [showAcousticModal, setShowAcousticModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | "track_end" | null>(null);
+  const [sleepRemainingSeconds, setSleepRemainingSeconds] = useState<number | null>(null);
+  const [acousticPreset, setAcousticPreset] = useState<AcousticPresetId>("CLEARAUDIO");
+
+  // Sleep timer interval
+  useEffect(() => {
+    if (sleepRemainingSeconds === null) return;
+    if (sleepRemainingSeconds <= 0) {
+      togglePlay();
+      setSleepTimerMinutes(null);
+      setSleepRemainingSeconds(null);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setSleepRemainingSeconds((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [sleepRemainingSeconds]);
+
+  const handleSetSleepTimer = (val: number | "track_end") => {
+    setSleepTimerMinutes(val);
+    if (val === "track_end") {
+      const remainingMs = Math.max(1000, durationMs - positionMs);
+      setSleepRemainingSeconds(Math.ceil(remainingMs / 1000));
+    } else {
+      setSleepRemainingSeconds(val * 60);
+    }
+  };
+
+  const handleCancelSleepTimer = () => {
+    setSleepTimerMinutes(null);
+    setSleepRemainingSeconds(null);
+  };
+
 
   useEffect(() => {
     if (token) {
@@ -253,6 +296,51 @@ export default function RoomScreen() {
 
           <TouchableOpacity style={styles.controlBtn} onPress={playNext}>
             <SkipForward size={22} color={palette.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+
+        {/* Quick Tools Row (Sleep Timer | Acoustic EQ | Share Room) */}
+        <View style={styles.quickToolsRow}>
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: sleepRemainingSeconds !== null ? palette.speaking : palette.surface,
+                borderColor: sleepRemainingSeconds !== null ? palette.speaking : palette.borderSubtle,
+              },
+            ]}
+            onPress={() => setShowSleepTimerModal(true)}
+          >
+            <Moon size={12} color={sleepRemainingSeconds !== null ? "#FFFFFF" : palette.textSecondary} style={{ marginRight: 4 }} />
+            <Text
+              style={[
+                styles.quickToolText,
+                { color: sleepRemainingSeconds !== null ? "#FFFFFF" : palette.textSecondary },
+              ]}
+            >
+              {sleepRemainingSeconds !== null
+                ? Math.ceil(sleepRemainingSeconds / 60) + "m left"
+                : "Sleep"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickToolBtn, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}
+            onPress={() => setShowAcousticModal(true)}
+          >
+            <Sliders size={12} color={palette.textSecondary} style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: palette.textSecondary }]}>
+              EQ: {acousticPreset === "CLEARAUDIO" ? "ClearAudio+" : acousticPreset === "WARM_VINYL" ? "Vinyl" : acousticPreset === "BASS_BOOST" ? "Bass" : "Vocal"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickToolBtn, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}
+            onPress={() => setShowShareModal(true)}
+          >
+            <Share2 size={12} color={palette.textSecondary} style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: palette.textSecondary }]}>Share</Text>
           </TouchableOpacity>
         </View>
 
@@ -646,11 +734,58 @@ export default function RoomScreen() {
           setShowModerationModal(false);
         }}
       />
+
+      {/* Sleep Timer Modal */}
+      <SleepTimerModal
+        visible={showSleepTimerModal}
+        onClose={() => setShowSleepTimerModal(false)}
+        onTimerSet={handleSetSleepTimer}
+        onCancelTimer={handleCancelSleepTimer}
+        activeTimerMinutes={typeof sleepTimerMinutes === "number" ? sleepTimerMinutes : null}
+        remainingSeconds={sleepRemainingSeconds}
+      />
+
+      {/* Acoustic EQ Presets Modal */}
+      <AcousticPresetsModal
+        visible={showAcousticModal}
+        onClose={() => setShowAcousticModal(false)}
+        selectedPreset={acousticPreset}
+        onSelectPreset={setAcousticPreset}
+      />
+
+      {/* Room Share Modal */}
+      <RoomShareModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        room={currentRoom}
+        track={currentTrack}
+      />
+
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  quickToolsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  quickToolBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.full,
+    borderWidth: 1,
+  },
+  quickToolText: {
+    fontSize: 10,
+    fontWeight: typography.weights.medium,
+  },
+
   viewToggleContainer: {
     alignItems: "center",
     marginTop: spacing.xs,
