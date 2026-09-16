@@ -187,8 +187,50 @@ export interface DuckingConfig {
   releaseTimeMs: number;  // e.g. 500ms
 }
 
+
+// --- SYNCHRONIZED LYRICS ---
+export interface LyricLine {
+  timeMs: number;
+  text: string;
+  translation?: string;
+  isChorus?: boolean;
+}
+
+export interface TrackLyrics {
+  trackId: string;
+  lines: LyricLine[];
+}
+
+// --- MODERATION & SOUNDBOARD ---
+export type ModerationActionType =
+  | "MUTE"
+  | "UNMUTE"
+  | "PROMOTE_TO_SPEAKER"
+  | "DEMOTE_TO_LISTENER"
+  | "TRANSFER_HOST"
+  | "KICK";
+
+export interface ModerationActionPayload {
+  roomId: string;
+  targetUserId: string;
+  action: ModerationActionType;
+  performedByUserId?: string;
+}
+
+export interface SoundboardTriggerPayload {
+  roomId: string;
+  soundId: string;
+  soundName: string;
+  emoji: string;
+  triggeredByUserId: string;
+  triggeredByName: string;
+  timestamp: number;
+}
+
 // --- SOCKET CONTRACTS ---
 export interface ClientToServerEvents {
+  "soundboard:trigger": (data: { roomId: string; soundId: string; emoji: string; soundName: string }) => void;
+  "moderation:action": (data: ModerationActionPayload) => void;
   "queue:add": (data: { roomId: string; track: TrackMetadata }) => void;
   "queue:remove": (data: { roomId: string; queueItemId: string }) => void;
   "queue:upvote": (data: { roomId: string; queueItemId: string }) => void;
@@ -204,6 +246,8 @@ export interface ClientToServerEvents {
 }
 
 export interface ServerToClientEvents {
+  "soundboard:played": (data: SoundboardTriggerPayload) => void;
+  "moderation:event": (data: ModerationActionPayload) => void;
   "queue:updated": (data: { roomId: string; queue: QueueItemDto[] }) => void;
   'room:state': (data: { room: RoomDetails; members: RoomMemberInfo[]; playback: PlaybackStateVector }) => void;
   'room:member_joined': (data: { member: RoomMemberInfo }) => void;

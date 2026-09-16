@@ -21,6 +21,8 @@ import {
   ReactionBurstPayload,
   QueueItemDto,
   TrackMetadata,
+  ModerationActionPayload,
+  SoundboardTriggerPayload,
 } from '@sony/types';
 
 @WebSocketGateway({
@@ -354,5 +356,86 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       isSpeaking: data.isSpeaking,
       audioLevel: data.audioLevel ?? 0.8,
     });
+  }
+  @SubscribeMessage("soundboard:trigger")
+  handleSoundboard(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; soundId: string; emoji: string; soundName: string },
+  ) {
+    const userId = socket.data.userId;
+    const username = socket.data.username || "DJ";
+    if (!userId || !data.soundId) return;
+
+    const payload: SoundboardTriggerPayload = {
+      roomId: data.roomId,
+      soundId: data.soundId,
+      soundName: data.soundName,
+      emoji: data.emoji,
+      triggeredByUserId: userId,
+      triggeredByName: username,
+      timestamp: Date.now(),
+    };
+
+    // Broadcast sound bite to all listeners in room
+    this.server.to(data.roomId).emit("soundboard:played", payload);
+  }
+
+  @SubscribeMessage("moderation:action")
+  async handleModerationAction(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: ModerationActionPayload,
+  ) {
+    const userId = socket.data.userId;
+    if (!userId) return;
+
+    // Check membership & host permissions
+    const member = await this.prisma.roomMember.findUnique({
+      where: { roomId_userId: { roomId: data.roomId, userId } },
+    });
+
+    if (!member || (member.role !== "HOST" && member.role !== "MODERATOR")) {
+      socket.emit("error", { message: "Only room host or moderators can perform moderation actions" });
+      return;
+    }
+
+    const payload: ModerationActionPayload = {
+      ...data,
+      performedByUserId: userId,
+    };
+
+    // Apply DB updates based on action
+    if (data.action === "MUTE") {
+      await this.prisma.roomMember.update({
+        where: { roomId_userId: { roomId: data.roomId, userId: data.targetUserId } },
+        data: { isMuted: true },
+      });
+    } else if (data.action === "UNMUTE") {
+      await this.prisma.roomMember.update({
+        where: { roomId_userId: { roomId: data.roomId, userId: data.targetUserId } },
+        data: { isMuted: false },
+      });
+    } else if (data.action === "PROMOTE_TO_SPEAKER") {
+      await this.prisma.roomMember.update({
+        where: { roomId_userId: { roomId: data.roomId, userId: data.targetUserId } },
+        data: { role: "MODERATOR", isMuted: false },
+      });
+    } else if (data.action === "DEMOTE_TO_LISTENER") {
+      await this.prisma.roomMember.update({
+        where: { roomId_userId: { roomId: data.roomId, userId: data.targetUserId } },
+        data: { role: "LISTENER", isMuted: true },
+      });
+    } else if (data.action === "TRANSFER_HOST") {
+      await this.prisma.roomMember.update({
+        where: { roomId_userId: { roomId: data.roomId, userId: data.targetUserId } },
+        data: { role: "HOST" },
+      });
+      await this.prisma.roomMember.update({
+        where: { roomId_userId: { roomId: data.roomId, userId } },
+        data: { role: "MODERATOR" },
+      });
+    }
+
+    // Broadcast moderation event to room
+    this.server.to(data.roomId).emit("moderation:event", payload);
   }
 }

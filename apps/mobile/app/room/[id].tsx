@@ -1,3 +1,8 @@
+import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
+import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
+import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
+import { HostModerationModal } from "../../src/components/room/HostModerationModal";
+import { ModerationActionType } from "@sony/types";
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -91,6 +96,8 @@ export default function RoomScreen() {
   const [chatInput, setChatInput] = useState("");
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [hasRaisedHand, setHasRaisedHand] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [showModerationModal, setShowModerationModal] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -159,22 +166,65 @@ export default function RoomScreen() {
         <TouchableOpacity style={styles.iconBtn} onPress={() => setShowSearchModal(true)}>
           <Plus size={20} color={palette.textPrimary} />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => setShowModerationModal(true)}>
+          <MoreHorizontal size={20} color={palette.textPrimary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Minimal Album Artwork */}
-        <View style={styles.artworkContainer}>
-          <Image
-            source={{ uri: currentTrack?.artworkUrl || "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&fit=crop&q=80" }}
-            style={styles.artwork}
-          />
+
+        {/* Mode Toggle Pill (Artwork vs Live Lyrics) */}
+        <View style={styles.viewToggleContainer}>
+          <View style={[styles.viewTogglePill, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
+            <TouchableOpacity
+              style={[styles.viewToggleBtn, !showLyrics && { backgroundColor: palette.textPrimary }]}
+              onPress={() => setShowLyrics(false)}
+            >
+              <Text style={[styles.viewToggleText, { color: !showLyrics ? "#FFFFFF" : palette.textSecondary }]}>
+                Artwork
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.viewToggleBtn, showLyrics && { backgroundColor: palette.textPrimary }]}
+              onPress={() => setShowLyrics(true)}
+            >
+              <Text style={[styles.viewToggleText, { color: showLyrics ? "#FFFFFF" : palette.textSecondary }]}>
+                🎤 Live Lyrics
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {showLyrics ? (
+          <SynchronizedLyrics
+            trackId={currentTrack?.id}
+            positionMs={positionMs}
+            onSeek={handleSeek}
+          />
+        ) : (
+          <View style={styles.artworkContainer}>
+            <Image
+              source={{ uri: currentTrack?.artworkUrl || "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&fit=crop&q=80" }}
+              style={styles.artwork}
+            />
+          </View>
+        )}
 
         {/* Track Title & Artist */}
         <View style={styles.trackInfo}>
           <Text style={[styles.trackTitle, { color: palette.textPrimary }]}>{currentTrack?.title || "Blinding Lights"}</Text>
           <Text style={[styles.artistName, { color: palette.textSecondary }]}>{currentTrack?.artist || "The Weeknd"}</Text>
         </View>
+
+        {/* Real-time Frequency Spectrum Visualizer */}
+        <AudioSpectrumVisualizer
+          isPlaying={isPlaying}
+          volume={volume}
+          duckingState={duckingState}
+          isVoiceActive={isVoiceActive}
+        />
+
 
         {/* Synchronized Scrub Bar */}
         <ScrubBar
@@ -244,6 +294,13 @@ export default function RoomScreen() {
             ))}
           </View>
         </View>
+
+        {/* DJ Soundboard */}
+        <DJSoundboard
+          onTriggerSound={(sound) => {
+            sendReaction(sound.emoji);
+          }}
+        />
 
         {/* Reaction Bar */}
         <View style={styles.reactionBar}>
@@ -578,11 +635,42 @@ export default function RoomScreen() {
         onAddToQueue={(track) => addToQueue(track)}
         onSelectTrack={(track) => playTrackImmediate(track)}
       />
+
+      {/* Host Moderation Modal */}
+      <HostModerationModal
+        visible={showModerationModal}
+        onClose={() => setShowModerationModal(false)}
+        members={members}
+        onModerationAction={(targetId, action) => {
+          console.log("Moderation action:", targetId, action);
+          setShowModerationModal(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  viewToggleContainer: {
+    alignItems: "center",
+    marginTop: spacing.xs,
+  },
+  viewTogglePill: {
+    flexDirection: "row",
+    padding: 3,
+    borderRadius: radii.full,
+    borderWidth: 1,
+  },
+  viewToggleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: radii.full,
+  },
+  viewToggleText: {
+    fontSize: 11,
+    fontWeight: typography.weights.semibold,
+  },
+
   container: {
     flex: 1,
   },
