@@ -1,7 +1,10 @@
 import { SleepTimerModal } from "../../src/components/player/SleepTimerModal";
 import { AcousticPresetsModal, AcousticPresetId } from "../../src/components/player/AcousticPresetsModal";
 import { RoomShareModal } from "../../src/components/room/RoomShareModal";
-import { Moon, Share2, Disc3 } from "lucide-react-native";
+import { AmbientSoundscapeModal } from "../../src/components/player/AmbientSoundscapeModal";
+import { CrossfadeSettingsModal } from "../../src/components/player/CrossfadeSettingsModal";
+import { TasteBlendModal } from "../../src/components/room/TasteBlendModal";
+import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
 import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
@@ -84,6 +87,8 @@ export default function RoomScreen() {
     playTrackImmediate,
     duckingProfile,
     setDuckingProfile,
+    crossfade,
+    soundscape,
   } = usePlaybackStore();
 
   const {
@@ -105,9 +110,13 @@ export default function RoomScreen() {
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
   const [showAcousticModal, setShowAcousticModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showSoundscapeModal, setShowSoundscapeModal] = useState(false);
+  const [showCrossfadeModal, setShowCrossfadeModal] = useState(false);
+  const [showTasteBlendModal, setShowTasteBlendModal] = useState(false);
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | "track_end" | null>(null);
   const [sleepRemainingSeconds, setSleepRemainingSeconds] = useState<number | null>(null);
   const [acousticPreset, setAcousticPreset] = useState<AcousticPresetId>("CLEARAUDIO");
+
 
   // Sleep timer interval
   useEffect(() => {
@@ -300,7 +309,7 @@ export default function RoomScreen() {
         </View>
 
 
-        {/* Quick Tools Row (Sleep Timer | Acoustic EQ | Share Room) */}
+        {/* Quick Tools Row 1 (Sleep Timer | Acoustic EQ | Share Room) */}
         <View style={styles.quickToolsRow}>
           <TouchableOpacity
             style={[
@@ -343,6 +352,61 @@ export default function RoomScreen() {
             <Text style={[styles.quickToolText, { color: palette.textSecondary }]}>Share</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Quick Tools Row 2 (Atmosphere | DJ Crossfade | Party Blend) */}
+        <View style={[styles.quickToolsRow, { marginTop: 4 }]}>
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: soundscape.isPlaying && soundscape.type !== "OFF" ? "#1E293B" : palette.surface,
+                borderColor: soundscape.isPlaying && soundscape.type !== "OFF" ? "#38BDF8" : palette.borderSubtle,
+              },
+            ]}
+            onPress={() => setShowSoundscapeModal(true)}
+          >
+            <CloudRain size={12} color={soundscape.isPlaying && soundscape.type !== "OFF" ? "#38BDF8" : palette.textSecondary} style={{ marginRight: 4 }} />
+            <Text
+              style={[
+                styles.quickToolText,
+                { color: soundscape.isPlaying && soundscape.type !== "OFF" ? "#38BDF8" : palette.textSecondary },
+              ]}
+            >
+              {soundscape.isPlaying && soundscape.type !== "OFF" ? `Atmosphere: ${soundscape.type}` : "Atmosphere"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: crossfade.enabled ? palette.surface : palette.surface,
+                borderColor: crossfade.enabled ? "#60A5FA" : palette.borderSubtle,
+              },
+            ]}
+            onPress={() => setShowCrossfadeModal(true)}
+          >
+            <Shuffle size={12} color={crossfade.enabled ? "#60A5FA" : palette.textSecondary} style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: crossfade.enabled ? "#60A5FA" : palette.textSecondary }]}>
+              {crossfade.enabled ? `DJ Blend: ${crossfade.durationSec}s` : "Crossfade"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: "rgba(245, 158, 11, 0.08)",
+                borderColor: "rgba(245, 158, 11, 0.3)",
+              },
+            ]}
+            onPress={() => setShowTasteBlendModal(true)}
+          >
+            <Sparkles size={12} color="#F59E0B" style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: "#FBBF24" }]}>Taste Blend</Text>
+          </TouchableOpacity>
+        </View>
+
 
         {/* Sing Together Live Ducking Status Badge */}
         <View style={{ marginVertical: spacing.sm }}>
@@ -761,7 +825,26 @@ export default function RoomScreen() {
         track={currentTrack}
       />
 
+      {/* Ambient Soundscape Modal */}
+      <AmbientSoundscapeModal
+        visible={showSoundscapeModal}
+        onClose={() => setShowSoundscapeModal(false)}
+      />
+
+      {/* Crossfade Settings Modal */}
+      <CrossfadeSettingsModal
+        visible={showCrossfadeModal}
+        onClose={() => setShowCrossfadeModal(false)}
+      />
+
+      {/* Taste Blend Modal */}
+      <TasteBlendModal
+        visible={showTasteBlendModal}
+        onClose={() => setShowTasteBlendModal(false)}
+        roomTitle={currentRoom?.name || "Late Night Studio"}
+      />
     </SafeAreaView>
+
   );
 }
 

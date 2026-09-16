@@ -28,6 +28,19 @@ interface PlaybackStoreState {
   isVoiceActive: boolean;
   queue: ExtendedQueueItem[];
 
+  // Phase 6: Crossfade & Ambient Soundscapes
+  crossfade: {
+    durationSec: 0 | 3 | 6 | 9 | 12;
+    enabled: boolean;
+    curve: 'EQUAL_POWER' | 'LINEAR';
+    smartCue: boolean;
+  };
+  soundscape: {
+    type: 'RAIN' | 'VINYL' | 'CAFE' | 'TAPE' | 'OFF';
+    volume: number;
+    isPlaying: boolean;
+  };
+
   // Actions
   setPlaybackVector: (vector: PlaybackStateVector) => void;
   togglePlay: () => void;
@@ -41,7 +54,14 @@ interface PlaybackStoreState {
   upvoteQueueItem: (itemId: string) => void;
   playNext: () => void;
   playTrackImmediate: (track: TrackMetadata) => void;
+  setCrossfadeDuration: (duration: 0 | 3 | 6 | 9 | 12) => void;
+  toggleCrossfadeEnabled: () => void;
+  toggleSmartCue: () => void;
+  setSoundscapeType: (type: 'RAIN' | 'VINYL' | 'CAFE' | 'TAPE' | 'OFF') => void;
+  setSoundscapeVolume: (vol: number) => void;
+  toggleSoundscapePlay: () => void;
 }
+
 
 let duckingController = new AudioDuckingController({
   duckedVolume: DUCKING_PROFILES.SING_TOGETHER.duckedVolume,
@@ -156,7 +176,21 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
     isVoiceActive: false,
     queue: DEFAULT_QUEUE,
 
+    // Phase 6: Crossfade & Ambient Soundscapes
+    crossfade: {
+      durationSec: 6,
+      enabled: true,
+      curve: 'EQUAL_POWER',
+      smartCue: true,
+    },
+    soundscape: {
+      type: 'RAIN',
+      volume: 0.40,
+      isPlaying: false,
+    },
+
     setPlaybackVector: (vector) => {
+
       set({
         stateVector: vector,
         currentTrack: vector.currentTrack || null,
@@ -262,5 +296,46 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
         isPlaying: true,
       });
     },
+
+    setCrossfadeDuration: (duration) => {
+      set((s) => ({
+        crossfade: { ...s.crossfade, durationSec: duration, enabled: duration > 0 },
+      }));
+    },
+
+    toggleCrossfadeEnabled: () => {
+      set((s) => ({
+        crossfade: { ...s.crossfade, enabled: !s.crossfade.enabled },
+      }));
+    },
+
+    toggleSmartCue: () => {
+      set((s) => ({
+        crossfade: { ...s.crossfade, smartCue: !s.crossfade.smartCue },
+      }));
+    },
+
+    setSoundscapeType: (type) => {
+      set((s) => ({
+        soundscape: {
+          ...s.soundscape,
+          type,
+          isPlaying: type !== 'OFF',
+        },
+      }));
+    },
+
+    setSoundscapeVolume: (vol) => {
+      set((s) => ({
+        soundscape: { ...s.soundscape, volume: Math.max(0, Math.min(1, vol)) },
+      }));
+    },
+
+    toggleSoundscapePlay: () => {
+      set((s) => ({
+        soundscape: { ...s.soundscape, isPlaying: !s.soundscape.isPlaying },
+      }));
+    },
   };
 });
+

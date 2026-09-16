@@ -87,7 +87,9 @@ export interface TrackMetadata {
   previewUrl?: string | null;
   streamUrl?: string | null; // For royalty-free/licensed direct testing
   isrc?: string | null;
+  genre?: string | null;
 }
+
 
 // --- SYNCHRONIZED PLAYBACK ENGINE ---
 export type PlaybackAction =
@@ -261,3 +263,58 @@ export interface ServerToClientEvents {
   'presence:update': (data: UserPresence) => void;
   'error': (data: { message: string; code?: string }) => void;
 }
+
+// ============================================================================
+// PHASE 6: CROSSFADE, AMBIENT SOUNDSCAPES & MUSIC TASTE BLEND
+// ============================================================================
+
+export type CrossfadeDurationSec = 0 | 3 | 6 | 9 | 12;
+
+export interface CrossfadeSettings {
+  durationSec: CrossfadeDurationSec;
+  enabled: boolean;
+  curve: 'EQUAL_POWER' | 'LINEAR';
+  smartCue: boolean;
+}
+
+export interface CrossfadeGains {
+  deckAGain: number; // 0.0 to 1.0 (outgoing track)
+  deckBGain: number; // 0.0 to 1.0 (incoming track)
+  progress: number;  // 0.0 to 1.0
+  totalPower: number; // deckAGain^2 + deckBGain^2
+}
+
+export type AmbientSoundscapeType = 'RAIN' | 'VINYL' | 'CAFE' | 'TAPE' | 'OFF';
+
+export interface AmbientSoundscapeState {
+  type: AmbientSoundscapeType;
+  volume: number; // 0.0 to 1.0
+  isPlaying: boolean;
+}
+
+export interface TasteProfile {
+  userId: string;
+  displayName: string;
+  avatarUrl?: string;
+  topGenres: string[];
+  topArtists: string[];
+  acousticTendency: number; // 0 (Synthetic/Electronic) to 100 (Acoustic/Analog)
+  energyPreference: number; // 0 (Chill/Ambient) to 100 (Peak Hype)
+  tempoBpmAvg: number;      // Average preferred BPM
+}
+
+export interface TasteBlendResult {
+  userA: TasteProfile;
+  userB: TasteProfile;
+  compatibilityScore: number; // 0 - 100%
+  verdict: string;            // e.g. "Cosmic Resonance", "Sonic Soulmates"
+  sharedGenres: string[];
+  sharedArtists: string[];
+  breakdown: {
+    genreAffinity: number; // 0 - 100%
+    tempoHarmony: number;  // 0 - 100%
+    energyBalance: number; // 0 - 100%
+  };
+  suggestedBlendTracks: TrackMetadata[];
+}
+
