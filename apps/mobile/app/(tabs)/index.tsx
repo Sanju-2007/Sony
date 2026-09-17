@@ -14,6 +14,7 @@ import { typography, colors, spacing, radii } from "../../src/theme/tokens";
 import { usePlaybackStore } from "../../src/store/playbackStore";
 import { CreateRoomModal } from "../../src/components/room/CreateRoomModal";
 import { MusicSearchModal } from "../../src/components/music/MusicSearchModal";
+import { DotWaveBackground } from "../../src/components/particles/DotWaveBackground";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -60,30 +61,33 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Dynamic Antigravity Black Dots Wave Background */}
+      <DotWaveBackground />
+
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Top Minimal Brand */}
         <View style={styles.header}>
           <View>
-            <Text style={[styles.eyebrow, { color: palette.textTertiary }]}>· listen together</Text>
-            <Text style={[styles.mainTitle, { color: palette.textPrimary }]}>What are you listening to?</Text>
+            <Text style={styles.eyebrow}>· LISTEN TOGETHER</Text>
+            <Text style={styles.mainTitle}>What are you listening to?</Text>
           </View>
           <TouchableOpacity
-            style={[styles.createButton, { backgroundColor: palette.accent }]}
+            style={styles.createButton}
             onPress={() => setShowCreateModal(true)}
           >
             <Plus size={18} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
-        {/* Minimal Search Bar (Tappable into Catalog Modal) */}
+        {/* Minimal Glass Search Bar */}
         <TouchableOpacity
           activeOpacity={0.8}
-          style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          style={styles.searchBar}
           onPress={() => setShowSearchModal(true)}
         >
-          <Search size={16} color={palette.textTertiary} style={{ marginRight: 10 }} />
-          <Text style={[styles.searchPlaceholder, { color: palette.textTertiary }]}>
+          <Search size={16} color="#71717A" style={{ marginRight: 10 }} />
+          <Text style={styles.searchPlaceholder}>
             Search tracks, artists, or rooms...
           </Text>
         </TouchableOpacity>
@@ -93,13 +97,13 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.liveIndicator}>
               <View style={[styles.liveDot, { backgroundColor: palette.speaking }]} />
-              <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Live Featured Party</Text>
+              <Text style={styles.sectionTitle}>Live Featured Party</Text>
             </View>
           </View>
 
           <TouchableOpacity
             activeOpacity={0.92}
-            style={[styles.heroCard, { backgroundColor: palette.card, borderColor: palette.border }]}
+            style={styles.heroCard}
             onPress={() => router.push("/room/room-late-night-1")}
           >
             <Image
@@ -113,10 +117,10 @@ export default function HomeScreen() {
                   <Text style={styles.livePillText}>LIVE NOW · 4 SYNCED</Text>
                 </View>
               </View>
-              <Text style={[styles.heroTrack, { color: palette.textPrimary }]} numberOfLines={1}>
+              <Text style={styles.heroTrack} numberOfLines={1}>
                 {currentTrack?.title || "Blinding Lights"}
               </Text>
-              <Text style={[styles.heroArtist, { color: palette.textSecondary }]}>
+              <Text style={styles.heroArtist}>
                 {currentTrack?.artist || "The Weeknd"} · Late Night Family
               </Text>
             </View>
@@ -186,6 +190,8 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#FFFFFF",
+    position: "relative",
   },
   scrollContent: {
     paddingHorizontal: spacing.lg,
@@ -194,6 +200,7 @@ const styles = StyleSheet.create({
     maxWidth: 1200,
     width: "100%",
     alignSelf: "center",
+    zIndex: 1,
   },
   header: {
     flexDirection: "row",
@@ -203,24 +210,31 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   eyebrow: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-    letterSpacing: typography.letterSpacing.wider,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.2,
     marginBottom: 4,
+    color: "#71717A",
     textTransform: "uppercase",
   },
   mainTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    letterSpacing: typography.letterSpacing.tight,
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    color: "#0A0A0A",
   },
   createButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
+    backgroundColor: "#0A0A0A",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
   },
   searchBar: {
     flexDirection: "row",
@@ -229,10 +243,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
     marginBottom: spacing.xl,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
   },
   searchPlaceholder: {
     fontSize: typography.sizes.sm,
+    color: "#8E8E93",
   },
   section: {
     marginBottom: spacing.xl,
@@ -254,9 +275,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
     letterSpacing: -0.2,
+    color: "#0A0A0A",
   },
   heroCard: {
     flexDirection: "row",
@@ -264,6 +286,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 16,
     borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.82)",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
   },
   heroArtwork: {
     width: 76,
@@ -296,15 +324,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: -0.2,
+    color: "#0A0A0A",
   },
   heroArtist: {
     fontSize: 13,
+    color: "#52525B",
     marginTop: 2,
   },
   joinBtn: {
-    backgroundColor: "#6366F1",
+    backgroundColor: "#0A0A0A",
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 10,
     marginLeft: 12,
   },
@@ -330,6 +360,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 14,
     borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.82)",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
   },
   roomHeaderRow: {
     flexDirection: "row",
@@ -344,9 +380,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     letterSpacing: -0.2,
+    color: "#0A0A0A",
   },
   roomTopic: {
     fontSize: 12,
+    color: "#71717A",
     marginTop: 2,
   },
   listenerPill: {
@@ -356,10 +394,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radii.full,
     borderWidth: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.04)",
+    borderColor: "rgba(0, 0, 0, 0.08)",
   },
   listenerCount: {
     fontSize: 12,
     fontWeight: "600",
+    color: "#0A0A0A",
   },
   roomTrackRow: {
     flexDirection: "row",
@@ -369,5 +410,6 @@ const styles = StyleSheet.create({
   roomTrackName: {
     fontSize: 12,
     fontWeight: "500",
+    color: "#52525B",
   },
 });

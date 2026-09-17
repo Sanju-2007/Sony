@@ -31,7 +31,7 @@ export default function TabLayout() {
           {/* Brand */}
           <View style={styles.brandRow}>
             <View style={styles.logoBadge}>
-              <Radio size={18} color="#6366F1" />
+              <Radio size={18} color="#FFFFFF" />
             </View>
             <View>
               <Text style={styles.brandTitle}>SONY MUSIC</Text>
@@ -71,7 +71,7 @@ export default function TabLayout() {
                 >
                   <Icon
                     size={18}
-                    color={isActive ? "#F8FAFC" : "#94A3B8"}
+                    color={isActive ? "#0A0A0A" : "#71717A"}
                     strokeWidth={isActive ? 2.2 : 1.8}
                   />
                   <Text
@@ -90,7 +90,7 @@ export default function TabLayout() {
           {/* Bottom Audio Engine Status */}
           <View style={styles.sidebarFooter}>
             <View style={styles.engineBadge}>
-              <Sparkles size={13} color="#10B981" style={{ marginRight: 6 }} />
+              <Sparkles size={13} color="#0A0A0A" style={{ marginRight: 6 }} />
               <Text style={styles.engineText}>Ducking Engine Active</Text>
             </View>
           </View>
@@ -102,12 +102,12 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: palette.textPrimary,
-            tabBarInactiveTintColor: palette.textTertiary,
+            tabBarActiveTintColor: "#0A0A0A",
+            tabBarInactiveTintColor: "#8E8E93",
             tabBarStyle: {
               display: isDesktop ? "none" : "flex",
-              backgroundColor: palette.background,
-              borderTopColor: palette.borderSubtle,
+              backgroundColor: "rgba(255, 255, 255, 0.85)",
+              borderTopColor: "rgba(0, 0, 0, 0.08)",
               borderTopWidth: 1,
               height: 64,
               paddingBottom: 10,
@@ -176,20 +176,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: "row",
-    backgroundColor: "#090A0F",
+    backgroundColor: "#FFFFFF",
     position: "relative",
     width: "100%",
     height: "100%",
   },
   sidebar: {
     width: 230,
-    backgroundColor: "#0D0F14",
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
     borderRightWidth: 1,
-    borderRightColor: "rgba(255, 255, 255, 0.06)",
+    borderRightColor: "rgba(0, 0, 0, 0.08)",
     paddingHorizontal: 16,
     paddingTop: 24,
     paddingBottom: 84, // Clear bottom player
     justifyContent: "space-between",
+    zIndex: 10,
   },
   brandRow: {
     flexDirection: "row",
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    backgroundColor: "#0A0A0A",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -209,24 +210,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     letterSpacing: 1.2,
-    color: "#F8FAFC",
+    color: "#0A0A0A",
   },
   brandSubtitle: {
     fontSize: 11,
-    color: "#64748B",
+    color: "#71717A",
   },
   createBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#6366F1",
+    backgroundColor: "#0A0A0A",
     paddingVertical: 10,
     borderRadius: 10,
     marginBottom: 24,
-    shadowColor: "#6366F1",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
   },
   createBtnText: {
     fontSize: 13,
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1,
-    color: "#475569",
+    color: "#A1A1AA",
     marginBottom: 8,
     paddingHorizontal: 8,
   },
@@ -254,34 +255,34 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   navItemActive: {
-    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    backgroundColor: "rgba(0, 0, 0, 0.06)",
   },
   navLabel: {
     fontSize: 13,
     fontWeight: "500",
-    color: "#94A3B8",
+    color: "#71717A",
   },
   navLabelActive: {
-    color: "#F8FAFC",
+    color: "#0A0A0A",
     fontWeight: "700",
   },
   sidebarFooter: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.05)",
+    borderTopColor: "rgba(0, 0, 0, 0.06)",
   },
   engineBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(16, 185, 129, 0.08)",
+    backgroundColor: "rgba(0, 0, 0, 0.04)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
   engineText: {
     fontSize: 11,
-    color: "#10B981",
-    fontWeight: "500",
+    color: "#0A0A0A",
+    fontWeight: "600",
   },
   mainContent: {
     flex: 1,

@@ -50,7 +50,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
           <View
             style={[
               styles.progressBarFill,
-              { width: (`${progressPercent}%` as any), backgroundColor: "#6366F1" },
+              { width: (`${progressPercent}%` as any), backgroundColor: "#0A0A0A" },
             ]}
           />
         </View>
@@ -64,9 +64,9 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
                 {currentTrack.title}
               </Text>
               <View style={styles.subtitleRow}>
-                {isPlaying && <View style={[styles.pulsingDot, { backgroundColor: palette.speaking }]} />}
+                {isPlaying && <View style={[styles.pulsingDot, { backgroundColor: "#10B981" }]} />}
                 <Text style={styles.desktopArtist} numberOfLines={1}>
-                  {currentTrack.artist} · <Text style={{ color: "#818CF8" }}>{currentRoom?.name || "Late Night Family"}</Text>
+                  {currentTrack.artist} · <Text style={{ color: "#0A0A0A", fontWeight: "600" }}>{currentRoom?.name || "Late Night Family"}</Text>
                 </Text>
               </View>
             </View>
@@ -76,16 +76,16 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
           <View style={styles.desktopCenterControls}>
             <View style={styles.desktopBtnRow}>
               <TouchableOpacity style={styles.iconBtn} onPress={togglePlay}>
-                <SkipBack size={16} color="#94A3B8" />
+                <SkipBack size={16} color="#0A0A0A" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.desktopPlayBtn, { backgroundColor: "#6366F1" }]}
+                style={[styles.desktopPlayBtn, { backgroundColor: "#0A0A0A" }]}
                 onPress={togglePlay}
               >
                 {isPlaying ? <Pause size={16} color="#FFFFFF" /> : <Play size={16} color="#FFFFFF" style={{ marginLeft: 2 }} />}
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={playNext}>
-                <SkipForward size={16} color="#94A3B8" />
+                <SkipForward size={16} color="#0A0A0A" />
               </TouchableOpacity>
             </View>
             <View style={styles.desktopScrubRow}>
@@ -100,7 +100,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
           {/* Right: Sound Tools & Expand */}
           <View style={styles.desktopRightTools}>
             <View style={styles.syncBadge}>
-              <View style={[styles.pulsingDot, { backgroundColor: palette.speaking }]} />
+              <View style={[styles.pulsingDot, { backgroundColor: "#10B981" }]} />
               <Text style={styles.syncBadgeText}>Lossless · &lt;15ms Sync</Text>
             </View>
             <TouchableOpacity
@@ -108,7 +108,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
               style={styles.expandRoomBtn}
               onPress={handlePressCard}
             >
-              <Maximize2 size={14} color="#F8FAFC" style={{ marginRight: 6 }} />
+              <Maximize2 size={13} color="#FFFFFF" style={{ marginRight: 6 }} />
               <Text style={styles.expandRoomText}>Open Stage</Text>
             </TouchableOpacity>
           </View>
@@ -124,8 +124,8 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
         style={[
           styles.container,
           {
-            backgroundColor: palette.surface,
-            borderColor: palette.border,
+            backgroundColor: "rgba(255, 255, 255, 0.88)",
+            borderColor: "rgba(0, 0, 0, 0.08)",
           },
         ]}
         onPress={handlePressCard}
@@ -137,7 +137,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
               styles.progressBarFill,
               {
                 width: (`${progressPercent}%` as any),
-                backgroundColor: "#6366F1",
+                backgroundColor: "#0A0A0A",
               },
             ]}
           />
@@ -149,14 +149,14 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
 
           {/* Track and Room Info */}
           <View style={styles.textContainer}>
-            <Text style={[styles.title, { color: palette.textPrimary }]} numberOfLines={1}>
+            <Text style={[styles.title, { color: "#0A0A0A" }]} numberOfLines={1}>
               {currentTrack.title}
             </Text>
             <View style={styles.subtitleRow}>
               {isPlaying && (
-                <View style={[styles.pulsingDot, { backgroundColor: palette.speaking }]} />
+                <View style={[styles.pulsingDot, { backgroundColor: "#10B981" }]} />
               )}
-              <Text style={[styles.artist, { color: palette.textSecondary }]} numberOfLines={1}>
+              <Text style={[styles.artist, { color: "#52525B" }]} numberOfLines={1}>
                 {currentTrack.artist} · {currentRoom?.name || "Listening"}
               </Text>
             </View>
@@ -165,7 +165,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
           {/* Quick Playback Actions */}
           <View style={styles.actionsContainer}>
             <TouchableOpacity
-              style={[styles.playPauseBtn, { backgroundColor: "#6366F1" }]}
+              style={[styles.playPauseBtn, { backgroundColor: "#0A0A0A" }]}
               onPress={(e) => {
                 e.stopPropagation();
                 togglePlay();
@@ -185,7 +185,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
                 playNext();
               }}
             >
-              <SkipForward size={16} color={palette.textPrimary} />
+              <SkipForward size={16} color="#0A0A0A" />
             </TouchableOpacity>
           </View>
         </View>
@@ -278,9 +278,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 74,
-    backgroundColor: "#111319",
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    borderTopColor: "rgba(0, 0, 0, 0.08)",
     zIndex: 9999,
   },
   desktopContent: {
@@ -306,12 +306,12 @@ const styles = StyleSheet.create({
   },
   desktopTitle: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#F8FAFC",
+    fontWeight: "700",
+    color: "#0A0A0A",
   },
   desktopArtist: {
     fontSize: 12,
-    color: "#94A3B8",
+    color: "#52525B",
     marginTop: 2,
   },
   desktopCenterControls: {
@@ -343,19 +343,19 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 11,
-    color: "#64748B",
+    color: "#71717A",
     minWidth: 32,
   },
   desktopScrubTrack: {
     flex: 1,
     height: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(0, 0, 0, 0.08)",
     borderRadius: 2,
     overflow: "hidden",
   },
   desktopScrubFill: {
     height: "100%",
-    backgroundColor: "#6366F1",
+    backgroundColor: "#0A0A0A",
     borderRadius: 2,
   },
   desktopRightTools: {
@@ -368,8 +368,8 @@ const styles = StyleSheet.create({
   syncBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-    borderColor: "rgba(16, 185, 129, 0.2)",
+    backgroundColor: "rgba(0, 0, 0, 0.04)",
+    borderColor: "rgba(0, 0, 0, 0.08)",
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -377,22 +377,20 @@ const styles = StyleSheet.create({
   },
   syncBadgeText: {
     fontSize: 10,
-    fontWeight: "500",
-    color: "#10B981",
+    fontWeight: "600",
+    color: "#0A0A0A",
   },
   expandRoomBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1E2230",
+    backgroundColor: "#0A0A0A",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   expandRoomText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#F8FAFC",
+    color: "#FFFFFF",
   },
 });

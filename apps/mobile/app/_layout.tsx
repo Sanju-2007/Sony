@@ -38,7 +38,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090A0F',
+    backgroundColor: '#FFFFFF',
     width: '100%',
     height: '100%',
   },
@@ -46,6 +46,6 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: '#090A0F',
+    backgroundColor: '#FFFFFF',
   },
 });
