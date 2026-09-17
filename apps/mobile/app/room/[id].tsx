@@ -17,11 +17,12 @@ import { SpatialAudioStageModal } from "../../src/components/voice/SpatialAudioS
 import { useRoomThemeStore } from "../../src/store/roomThemeStore";
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
-import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones } from "lucide-react-native";
+import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones, ShieldAlert } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
 import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
 import { HostModerationModal } from "../../src/components/room/HostModerationModal";
+import { ReportModal } from "../../src/components/moderation/ReportModal";
 import { ModerationActionType, SuperReactionType, SuperReactionPayload } from "@sony/types";
 import React, { useState, useEffect } from "react";
 
@@ -72,6 +73,8 @@ import { socketService } from "../../src/services/socketService";
 import { useSyncEngine } from "../../src/hooks/useSyncEngine";
 import { useAudioDucking } from "../../src/hooks/useAudioDucking";
 import { MusicSearchModal } from "../../src/components/music/MusicSearchModal";
+import { VoiceMessagePlayer } from "../../src/components/voice/VoiceMessagePlayer";
+import { useModerationStore } from "../../src/store/moderationStore";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -176,6 +179,8 @@ export default function RoomScreen() {
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | "track_end" | null>(null);
   const [sleepRemainingSeconds, setSleepRemainingSeconds] = useState<number | null>(null);
   const [acousticPreset, setAcousticPreset] = useState<AcousticPresetId>("CLEARAUDIO");
+  const [showReportModal, setShowReportModal] = useState(false);
+  const { kickUserFromRoom } = useModerationStore();
 
 
 
@@ -255,6 +260,30 @@ export default function RoomScreen() {
     setChatInput("");
   };
 
+  const handleSendVoiceNote = () => {
+    const durationSec = Math.floor(Math.random() * 5) + 3;
+    const randomWave = Array.from({ length: 14 }, () =>
+      Number((Math.random() * 0.7 + 0.3).toFixed(2))
+    );
+    const currentUser = user || { id: "user-me", username: "me", displayName: "You" };
+    addMessage({
+      id: "voice-" + Date.now(),
+      roomId,
+      type: "VOICE",
+      content: `🎤 Voice note (${durationSec}s)`,
+      createdAt: new Date().toISOString(),
+      sender: currentUser,
+      voiceMessage: {
+        id: "vm-" + Date.now(),
+        senderId: currentUser.id,
+        storageKey: `voice/${roomId}/${Date.now()}.ogg`,
+        durationSec,
+        waveformMetadata: randomWave,
+        createdAt: new Date().toISOString(),
+      },
+    });
+  };
+
   const handlePlayToggle = () => {
     togglePlay();
     socketService.sendPlaybackCommand({
@@ -313,6 +342,13 @@ export default function RoomScreen() {
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} onPress={() => setShowModerationModal(true)}>
           <MoreHorizontal size={20} color={palette.textPrimary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => setShowReportModal(true)}
+          accessibilityLabel="Report Room or Incident"
+        >
+          <ShieldAlert size={18} color="#EF4444" />
         </TouchableOpacity>
       </View>
 
@@ -734,15 +770,33 @@ export default function RoomScreen() {
                 </Text>
               ) : (
                 messages.map((msg) => (
-                  <View key={msg.id} style={styles.messageRow}>
+                  <View key={msg.id} style={[styles.messageRow, { alignItems: msg.type === "VOICE" ? "flex-start" : "center", marginBottom: 6 }]}>
                     <Text style={[styles.msgSender, { color: palette.textPrimary }]}>{msg.sender.displayName}: </Text>
-                    <Text style={[styles.msgContent, { color: palette.textSecondary }]}>{msg.content}</Text>
+                    {msg.type === "VOICE" && msg.voiceMessage ? (
+                      <View style={{ marginTop: 2 }}>
+                        <VoiceMessagePlayer
+                          id={msg.id}
+                          duration={msg.voiceMessage.durationSec}
+                          waveform={msg.voiceMessage.waveformMetadata}
+                          isMe={msg.sender.id === user?.id}
+                        />
+                      </View>
+                    ) : (
+                      <Text style={[styles.msgContent, { color: palette.textSecondary }]}>{msg.content}</Text>
+                    )}
                   </View>
                 ))
               )}
             </View>
 
             <View style={[styles.chatInputRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <TouchableOpacity
+                style={{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", marginRight: 6, backgroundColor: palette.background }}
+                onPress={handleSendVoiceNote}
+                accessibilityLabel="Send voice note"
+              >
+                <Mic size={14} color={palette.speaking} />
+              </TouchableOpacity>
               <TextInput
                 value={chatInput}
                 onChangeText={setChatInput}
@@ -1027,9 +1081,20 @@ export default function RoomScreen() {
         onClose={() => setShowModerationModal(false)}
         members={members}
         onModerationAction={(targetId, action) => {
-          console.log("Moderation action:", targetId, action);
+          if (action === "KICK") {
+            kickUserFromRoom(roomId, targetId);
+          }
           setShowModerationModal(false);
         }}
+      />
+
+      {/* Safety & Incident Report Modal */}
+      <ReportModal
+        visible={showReportModal}
+        targetType="ROOM"
+        targetId={roomId}
+        targetName={currentRoom?.name || "Room"}
+        onClose={() => setShowReportModal(false)}
       />
 
       {/* Sleep Timer Modal */}

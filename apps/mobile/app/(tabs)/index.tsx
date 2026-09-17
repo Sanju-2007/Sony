@@ -9,17 +9,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Search, Users, Plus, Music2, Sparkles } from "lucide-react-native";
+import { Search, Users, Plus, Music2, Sparkles, Bell } from "lucide-react-native";
 import { typography, spacing, radii } from "../../src/theme/tokens";
 import { usePlaybackStore } from "../../src/store/playbackStore";
 import { useThemeStore } from "../../src/store/themeStore";
 import { CreateRoomModal } from "../../src/components/room/CreateRoomModal";
 import { MusicSearchModal } from "../../src/components/music/MusicSearchModal";
+import { NotificationCenterModal } from "../../src/components/notifications/NotificationCenterModal";
 import { DotWaveBackground } from "../../src/components/particles/DotWaveBackground";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
 import { useRoomsStore } from "../../src/store/roomsStore";
 import { useSocialStore } from "../../src/store/socialStore";
+import { useNotificationStore } from "../../src/store/notificationStore";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -30,6 +32,9 @@ export default function HomeScreen() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const { getUnreadCount } = useNotificationStore();
+  const unreadNotifCount = getUnreadCount();
 
   const featuredRoom = rooms[0];
 
@@ -50,6 +55,27 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.headerRightActions}>
+            <TouchableOpacity
+              style={[
+                styles.bellButton,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.borderSubtle,
+                },
+              ]}
+              onPress={() => setShowNotificationModal(true)}
+              accessibilityLabel="Notifications"
+            >
+              <Bell size={16} color={palette.textPrimary} />
+              {unreadNotifCount > 0 && (
+                <View style={[styles.notifBadge, { backgroundColor: palette.speaking }]}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
             <ThemeToggleButton />
             <TouchableOpacity
               style={[styles.createButton, { backgroundColor: palette.accent }]}
@@ -262,6 +288,12 @@ export default function HomeScreen() {
           }
         }}
       />
+
+      {/* NOTIFICATION CENTER MODAL */}
+      <NotificationCenterModal
+        visible={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -291,6 +323,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  bellButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  notifBadge: {
+    position: "absolute",
+    top: -3,
+    right: -3,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  notifBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "700",
   },
   eyebrow: {
     fontSize: 11,

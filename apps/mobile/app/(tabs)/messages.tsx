@@ -28,6 +28,9 @@ import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton"
 import { Plus, UserPlus, X, Search } from "lucide-react-native";
 import { useChatStore, ChatThread } from "../../src/store/chatStore";
 import { useSocialStore } from "../../src/store/socialStore";
+import { useModerationStore } from "../../src/store/moderationStore";
+import { VoiceMessagePlayer } from "../../src/components/voice/VoiceMessagePlayer";
+import { ReportModal } from "../../src/components/moderation/ReportModal";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -35,9 +38,11 @@ export default function MessagesScreen() {
   const { palette, isDark } = useThemeStore();
   const { threads, startConversation, sendMessage, sendVoiceNote } = useChatStore();
   const { friends } = useSocialStore();
+  const { isUserBlocked } = useModerationStore();
 
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [customRecipient, setCustomRecipient] = useState("");
   const [inputText, setInputText] = useState("");
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
@@ -48,7 +53,8 @@ export default function MessagesScreen() {
   const recordingIntervalRef = useRef<any>(null);
   const playbackIntervalRef = useRef<any>(null);
 
-  const activeThread = threads.find((t) => t.id === activeThreadId) || null;
+  const visibleThreads = threads.filter((t) => !isUserBlocked(t.id));
+  const activeThread = visibleThreads.find((t) => t.id === activeThreadId) || null;
 
   // Playback timer simulator
   useEffect(() => {
@@ -159,7 +165,7 @@ export default function MessagesScreen() {
           </View>
         </View>
 
-        {threads.length === 0 ? (
+        {visibleThreads.length === 0 ? (
           <View style={[styles.emptyInboxCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <MessageSquare size={28} color={palette.accent} style={{ marginBottom: 10 }} />
             <Text style={[styles.emptyInboxTitle, { color: palette.textPrimary }]}>No messages yet</Text>
@@ -176,7 +182,7 @@ export default function MessagesScreen() {
           </View>
         ) : (
           <View style={styles.list}>
-            {threads.map((c) => {
+            {visibleThreads.map((c) => {
               const lastMsg = c.messages[c.messages.length - 1];
               return (
                 <TouchableOpacity
@@ -304,7 +310,11 @@ export default function MessagesScreen() {
                 </Text>
               </View>
 
-              <TouchableOpacity style={styles.moreBtn}>
+              <TouchableOpacity
+                style={styles.moreBtn}
+                onPress={() => setShowReportModal(true)}
+                accessibilityLabel="Report or block user"
+              >
                 <MoreVertical size={18} color={palette.textTertiary} />
               </TouchableOpacity>
             </View>
@@ -322,65 +332,13 @@ export default function MessagesScreen() {
                     ]}
                   >
                     {msg.isVoice ? (
-                      // Voice Message Player Card
-                      <View
-                        style={[
-                          styles.voiceMessageBubble,
-                          {
-                            backgroundColor: isMe ? palette.accent : palette.surface,
-                            borderColor: palette.borderSubtle,
-                          },
-                        ]}
-                      >
-                        <TouchableOpacity
-                          style={[
-                            styles.voicePlayBtn,
-                            { backgroundColor: isMe ? palette.accentInverted : palette.accent },
-                          ]}
-                          onPress={() => togglePlayVoice(msg.id)}
-                        >
-                          {playingVoiceId === msg.id ? (
-                            <Pause size={14} color={isMe ? palette.accent : palette.accentInverted} />
-                          ) : (
-                            <Play size={14} color={isMe ? palette.accent : palette.accentInverted} style={{ marginLeft: 2 }} />
-                          )}
-                        </TouchableOpacity>
-
-                        {/* Waveform Bars */}
-                        <View style={styles.waveformContainer}>
-                          {msg.waveform.map((bar, i) => {
-                            const barProgress = i / msg.waveform.length;
-                            const isPlayed = playingVoiceId === msg.id && playbackProgress >= barProgress;
-                            return (
-                              <View
-                                key={i}
-                                style={[
-                                  styles.waveBar,
-                                  {
-                                    height: Math.round(bar * 24),
-                                    backgroundColor: isMe
-                                      ? isPlayed
-                                        ? palette.speaking
-                                        : isDark ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.4)"
-                                      : isPlayed
-                                      ? palette.speaking
-                                      : palette.border,
-                                  },
-                                ]}
-                              />
-                            );
-                          })}
-                        </View>
-
-                        <Text
-                          style={[
-                            styles.voiceDurationText,
-                            { color: isMe ? (isDark ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)") : palette.textTertiary },
-                          ]}
-                        >
-                          {msg.durationSec}s
-                        </Text>
-                      </View>
+                      <VoiceMessagePlayer
+                        id={msg.id}
+                        duration={msg.durationSec}
+                        waveform={msg.waveform}
+                        isMe={isMe}
+                        createdAt={msg.createdAt}
+                      />
                     ) : (
                       // Standard Text Bubble
                       <View
@@ -453,6 +411,17 @@ export default function MessagesScreen() {
           </SafeAreaView>
         )}
       </Modal>
+
+      {/* Safety & Moderation Report Modal */}
+      {activeThread && (
+        <ReportModal
+          visible={showReportModal}
+          targetType="USER"
+          targetId={activeThread.id}
+          targetName={activeThread.name}
+          onClose={() => setShowReportModal(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
