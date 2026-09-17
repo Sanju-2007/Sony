@@ -12,10 +12,12 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { X, Globe, Users, Lock, Sparkles, Music, ChevronRight } from "lucide-react-native";
-import { RoomType, TrackMetadata } from "@sony/types";
+import { RoomType, TrackMetadata, RoomDetails } from "@sony/types";
 import { typography, spacing, radii } from "../../theme/tokens";
 import { usePlaybackStore } from "../../store/playbackStore";
 import { useRoomStore } from "../../store/roomStore";
+import { useRoomsStore } from "../../store/roomsStore";
+import { useAuthStore } from "../../store/authStore";
 import { useThemeStore } from "../../store/themeStore";
 import { CATALOG_TRACKS, MusicSearchModal } from "../music/MusicSearchModal";
 
@@ -30,6 +32,8 @@ interface CreateRoomModalProps {
 export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModalProps) {
   const router = useRouter();
   const { palette, isDark } = useThemeStore();
+  const { user } = useAuthStore();
+  const { createRoom } = useRoomsStore();
 
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
@@ -42,36 +46,42 @@ export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModal
   const { setRoom } = useRoomStore();
 
   const handleCreate = () => {
-    const finalName = name.trim() || "Midnight Chill Session";
-    const finalTopic = topic.trim() || "Ambient soundscapes and good conversations";
+    const finalName = name.trim() || "My Listening Room";
+    const finalTopic = topic.trim() || "Music, conversation, and real-time audio";
     const roomId = "room-" + Date.now().toString(36);
+    const currentUser = user || { id: "user-" + Date.now().toString(36), username: "me", displayName: "You" };
 
-    // Initialize room store state
+    const newRoom: RoomDetails = {
+      id: roomId,
+      name: finalName,
+      slug: finalName.toLowerCase().replace(/\s+/g, "-"),
+      description: finalTopic,
+      type: privacy,
+      ownerId: currentUser.id,
+      maxParticipants,
+      participantCount: 1,
+      status: "ACTIVE",
+      currentTrack: selectedTrack,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Persist room into userRoomsStore
+    createRoom(newRoom);
+
+    // Initialize active room store
     setRoom(
-      {
-        id: roomId,
-        name: finalName,
-        slug: finalName.toLowerCase().replace(/\s+/g, "-"),
-        description: finalTopic,
-        type: privacy,
-        ownerId: "user-preview-1",
-        maxParticipants,
-        participantCount: 1,
-        status: "ACTIVE",
-        currentTrack: selectedTrack,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      newRoom,
       [
         {
-          userId: "user-preview-1",
+          userId: currentUser.id,
           roomId,
           role: "HOST",
           isMuted: false,
           isDeafened: false,
           isSpeaking: false,
           joinedAt: new Date().toISOString(),
-          user: { id: "user-preview-1", username: "sanju", displayName: "Sanju" },
+          user: currentUser,
         },
       ]
     );

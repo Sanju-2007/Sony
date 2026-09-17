@@ -34,9 +34,9 @@ export default function LoginScreen() {
   const { isDark, palette } = useThemeStore();
 
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("alex.rivers@sony.com");
-  const [password, setPassword] = useState("••••••••••••");
-  const [displayName, setDisplayName] = useState("Alex Rivers");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);

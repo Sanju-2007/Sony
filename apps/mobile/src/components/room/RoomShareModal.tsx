@@ -78,14 +78,14 @@ export function RoomShareModal({
                     <Text style={styles.liveBadgeText}>LIVE NOW</Text>
                   </View>
                   <Text style={[styles.listenerMeta, { color: palette.textTertiary }]}>
-                    {room?.participantCount || 4} listening
+                    {room?.participantCount || 1} listening
                   </Text>
                 </View>
-                <Text style={[styles.cardRoomTitle, { color: palette.textPrimary }]} numberOfLines={1}>
-                  {room?.name || "Late Night Family"}
+                <Text style={[styles.cardRoomTitle, { color: palette.textPrimary }] } numberOfLines={1}>
+                  {room?.name || "Listening Room"}
                 </Text>
                 <Text style={[styles.cardTrackMeta, { color: palette.textSecondary }]} numberOfLines={1}>
-                  {track?.title || "Blinding Lights"} · {track?.artist || "The Weeknd"}
+                  {track ? `${track.title} · ${track.artist}` : "Real-time Synchronized Audio"}
                 </Text>
               </View>
             </View>

@@ -25,100 +25,20 @@ import { typography, spacing, radii } from "../../src/theme/tokens";
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
+import { Plus, UserPlus, X, Search } from "lucide-react-native";
+import { useChatStore, ChatThread } from "../../src/store/chatStore";
+import { useSocialStore } from "../../src/store/socialStore";
+
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-
-interface VoiceMessageItem {
-  id: string;
-  sender: "me" | "them";
-  durationSec: number;
-  waveform: number[]; // normalized heights 0.2 to 1.0
-  createdAt: string;
-  isVoice: true;
-}
-
-interface TextMessageItem {
-  id: string;
-  sender: "me" | "them";
-  text: string;
-  createdAt: string;
-  isVoice: false;
-}
-
-type MessageItem = VoiceMessageItem | TextMessageItem;
-
-interface ChatThread {
-  id: string;
-  name: string;
-  handle: string;
-  avatar: string;
-  listeningTo?: string;
-  unread: number;
-  messages: MessageItem[];
-}
 
 export default function MessagesScreen() {
   const { palette, isDark } = useThemeStore();
+  const { threads, startConversation, sendMessage, sendVoiceNote } = useChatStore();
+  const { friends } = useSocialStore();
 
-  const [threads, setThreads] = useState<ChatThread[]>([
-    {
-      id: "c1",
-      name: "Rahul",
-      handle: "@rahul",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&fit=crop&q=80",
-      listeningTo: "Tokyo Rain & Neon Lights",
-      unread: 1,
-      messages: [
-        {
-          id: "m1",
-          sender: "them",
-          text: "Yo Sanju! Did you check out the new track in the room?",
-          createdAt: "10:30 PM",
-          isVoice: false,
-        },
-        {
-          id: "m2",
-          sender: "them",
-          durationSec: 16,
-          waveform: [0.3, 0.6, 0.9, 0.4, 0.8, 1.0, 0.7, 0.5, 0.8, 0.6, 0.4, 0.9, 0.5, 0.3],
-          createdAt: "10:32 PM",
-          isVoice: true,
-        },
-        {
-          id: "m3",
-          sender: "me",
-          text: "Yeah the audio ducking is so crisp! Volume dips perfectly when speaking.",
-          createdAt: "10:34 PM",
-          isVoice: false,
-        },
-      ],
-    },
-    {
-      id: "c2",
-      name: "Aisha",
-      handle: "@aisha",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&fit=crop&q=80",
-      listeningTo: "Blinding Lights",
-      unread: 0,
-      messages: [
-        {
-          id: "m4",
-          sender: "them",
-          text: "Are you joining the late night room?",
-          createdAt: "9:15 PM",
-          isVoice: false,
-        },
-        {
-          id: "m5",
-          sender: "me",
-          text: "Jumping in right now!",
-          createdAt: "9:20 PM",
-          isVoice: false,
-        },
-      ],
-    },
-  ]);
-
-  const [activeThread, setActiveThread] = useState<ChatThread | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [customRecipient, setCustomRecipient] = useState("");
   const [inputText, setInputText] = useState("");
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [playbackProgress, setPlaybackProgress] = useState(0); // 0 to 1
@@ -127,6 +47,8 @@ export default function MessagesScreen() {
 
   const recordingIntervalRef = useRef<any>(null);
   const playbackIntervalRef = useRef<any>(null);
+
+  const activeThread = threads.find((t) => t.id === activeThreadId) || null;
 
   // Playback timer simulator
   useEffect(() => {
@@ -167,20 +89,7 @@ export default function MessagesScreen() {
 
   const handleSendText = () => {
     if (!inputText.trim() || !activeThread) return;
-    const newMsg: TextMessageItem = {
-      id: "msg-" + Date.now(),
-      sender: "me",
-      text: inputText.trim(),
-      createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      isVoice: false,
-    };
-
-    setThreads((prev) =>
-      prev.map((t) =>
-        t.id === activeThread.id ? { ...t, messages: [...t.messages, newMsg] } : t
-      )
-    );
-    setActiveThread((prev) => (prev ? { ...prev, messages: [...prev.messages, newMsg] } : null));
+    sendMessage(activeThread.id, inputText.trim());
     setInputText("");
   };
 
@@ -198,24 +107,28 @@ export default function MessagesScreen() {
       Number((Math.random() * 0.7 + 0.3).toFixed(2))
     );
 
-    const newVoiceMsg: VoiceMessageItem = {
-      id: "voice-" + Date.now(),
-      sender: "me",
-      durationSec: duration,
-      waveform: randomWave,
-      createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      isVoice: true,
-    };
-
-    setThreads((prev) =>
-      prev.map((t) =>
-        t.id === activeThread.id ? { ...t, messages: [...t.messages, newVoiceMsg] } : t
-      )
-    );
-    setActiveThread((prev) =>
-      prev ? { ...prev, messages: [...prev.messages, newVoiceMsg] } : null
-    );
+    sendVoiceNote(activeThread.id, duration, randomWave);
     setRecordingSeconds(0);
+  };
+
+  const handleStartWithFriend = (f: { id: string; name: string; handle: string; avatar: string }) => {
+    const threadId = startConversation(f);
+    setActiveThreadId(threadId);
+    setShowNewChatModal(false);
+  };
+
+  const handleStartCustom = () => {
+    if (!customRecipient.trim()) return;
+    const name = customRecipient.trim().replace(/^@/, "");
+    const threadId = startConversation({
+      id: "recipient-" + Date.now(),
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      handle: "@" + name.toLowerCase(),
+      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&fit=crop&q=80",
+    });
+    setCustomRecipient("");
+    setActiveThreadId(threadId);
+    setShowNewChatModal(false);
   };
 
   const togglePlayVoice = (id: string) => {
@@ -229,68 +142,156 @@ export default function MessagesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.header, { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }]}>
+        <View style={[styles.header, { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
           <View>
             <Text style={[styles.eyebrow, { color: palette.textTertiary }]}>· direct</Text>
             <Text style={[styles.mainTitle, { color: palette.textPrimary }]}>Messages</Text>
           </View>
-          <ThemeToggleButton />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <ThemeToggleButton />
+            <TouchableOpacity
+              style={[styles.newChatBtn, { backgroundColor: palette.accent }]}
+              onPress={() => setShowNewChatModal(true)}
+            >
+              <Plus size={16} color={palette.accentInverted} style={{ marginRight: 4 }} />
+              <Text style={[styles.newChatBtnText, { color: palette.accentInverted }]}>New</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View style={styles.list}>
-          {threads.map((c) => {
-            const lastMsg = c.messages[c.messages.length - 1];
-            return (
-              <TouchableOpacity
-                key={c.id}
-                style={[
-                  styles.chatCard,
-                  { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
-                ]}
-                onPress={() => setActiveThread(c)}
-              >
-                <Image source={{ uri: c.avatar }} style={styles.avatar} />
-                <View style={styles.info}>
-                  <View style={styles.titleRow}>
-                    <Text style={[styles.name, { color: palette.textPrimary }]}>{c.name}</Text>
-                    <Text style={[styles.time, { color: palette.textTertiary }]}>{lastMsg?.createdAt}</Text>
-                  </View>
-                  <View style={styles.msgRow}>
-                    {lastMsg?.isVoice ? (
-                      <>
-                        <Mic size={12} color={palette.duckingIndicator} style={{ marginRight: 4 }} />
-                        <Text style={[styles.lastMsg, { color: palette.textSecondary }]}>
-                          Voice note ({lastMsg.durationSec}s)
+        {threads.length === 0 ? (
+          <View style={[styles.emptyInboxCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <MessageSquare size={28} color={palette.accent} style={{ marginBottom: 10 }} />
+            <Text style={[styles.emptyInboxTitle, { color: palette.textPrimary }]}>No messages yet</Text>
+            <Text style={[styles.emptyInboxSubtitle, { color: palette.textSecondary }]}>
+              Chat directly or send synchronized voice notes to friends while listening together.
+            </Text>
+            <TouchableOpacity
+              style={[styles.emptyInboxBtn, { backgroundColor: palette.accent }]}
+              onPress={() => setShowNewChatModal(true)}
+            >
+              <Plus size={15} color={palette.accentInverted} style={{ marginRight: 6 }} />
+              <Text style={[styles.emptyInboxBtnText, { color: palette.accentInverted }]}>Start Conversation</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {threads.map((c) => {
+              const lastMsg = c.messages[c.messages.length - 1];
+              return (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[
+                    styles.chatCard,
+                    { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                  ]}
+                  onPress={() => setActiveThreadId(c.id)}
+                >
+                  <Image source={{ uri: c.avatar }} style={styles.avatar} />
+                  <View style={styles.info}>
+                    <View style={styles.titleRow}>
+                      <Text style={[styles.name, { color: palette.textPrimary }]}>{c.name}</Text>
+                      <Text style={[styles.time, { color: palette.textTertiary }]}>{lastMsg?.createdAt || ""}</Text>
+                    </View>
+                    <View style={styles.msgRow}>
+                      {lastMsg?.isVoice ? (
+                        <>
+                          <Mic size={12} color={palette.duckingIndicator} style={{ marginRight: 4 }} />
+                          <Text style={[styles.lastMsg, { color: palette.textSecondary }]}>
+                            Voice note ({lastMsg.durationSec}s)
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={[styles.lastMsg, { color: palette.textSecondary }]} numberOfLines={1}>
+                          {lastMsg?.text || "No messages yet"}
                         </Text>
-                      </>
-                    ) : (
-                      <Text style={[styles.lastMsg, { color: palette.textSecondary }]} numberOfLines={1}>
-                        {lastMsg?.text}
-                      </Text>
+                      )}
+                    </View>
+                    {c.listeningTo && (
+                      <View style={styles.listeningTag}>
+                        <Disc size={10} color={palette.textTertiary} style={{ marginRight: 4 }} />
+                        <Text style={[styles.listeningText, { color: palette.textTertiary }]} numberOfLines={1}>
+                          Listening to {c.listeningTo}
+                        </Text>
+                      </View>
                     )}
                   </View>
-                  {c.listeningTo && (
-                    <View style={styles.listeningTag}>
-                      <Disc size={10} color={palette.textTertiary} style={{ marginRight: 4 }} />
-                      <Text style={[styles.listeningText, { color: palette.textTertiary }]} numberOfLines={1}>
-                        Listening to {c.listeningTo}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
+      {/* NEW CONVERSATION MODAL */}
+      <Modal visible={showNewChatModal} animationType="slide" transparent onRequestClose={() => setShowNewChatModal(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.newChatSheet, { backgroundColor: palette.background }]}>
+            <View style={styles.newChatHeader}>
+              <Text style={[styles.newChatTitle, { color: palette.textPrimary }]}>Start a Conversation</Text>
+              <TouchableOpacity onPress={() => setShowNewChatModal(false)}>
+                <X size={20} color={palette.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 13, color: palette.textSecondary, marginBottom: 12 }}>
+              Choose a friend or type a recipient's handle to message directly:
+            </Text>
+
+            <View style={[styles.searchBox, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <Search size={16} color={palette.textTertiary} style={{ marginRight: 8 }} />
+              <TextInput
+                value={customRecipient}
+                onChangeText={setCustomRecipient}
+                placeholder="Enter handle or name..."
+                placeholderTextColor={palette.textTertiary}
+                style={[styles.searchInput, { color: palette.textPrimary }]}
+                onSubmitEditing={handleStartCustom}
+              />
+            </View>
+
+            {customRecipient.trim().length > 0 && (
+              <TouchableOpacity
+                style={[styles.startCustomBtn, { backgroundColor: palette.accent }]}
+                onPress={handleStartCustom}
+              >
+                <Plus size={15} color={palette.accentInverted} style={{ marginRight: 6 }} />
+                <Text style={[styles.startCustomBtnText, { color: palette.accentInverted }]}>
+                  Message @{customRecipient.trim().replace(/^@/, "")}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {friends.length > 0 && (
+              <View style={{ marginTop: spacing.md }}>
+                <Text style={[styles.friendsListLabel, { color: palette.textTertiary }]}>YOUR FRIENDS</Text>
+                {friends.map((f) => (
+                  <TouchableOpacity
+                    key={f.id}
+                    style={[styles.friendPickRow, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}
+                    onPress={() => handleStartWithFriend(f)}
+                  >
+                    <Image source={{ uri: f.avatar }} style={styles.friendPickAvatar} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={[styles.friendPickName, { color: palette.textPrimary }]}>{f.name}</Text>
+                      <Text style={[styles.friendPickHandle, { color: palette.textTertiary }]}>{f.handle}</Text>
+                    </View>
+                    <MessageSquare size={16} color={palette.accent} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
       {/* ACTIVE CONVERSATION MODAL */}
-      <Modal visible={!!activeThread} animationType="slide" onRequestClose={() => setActiveThread(null)}>
+      <Modal visible={!!activeThread} animationType="slide" onRequestClose={() => setActiveThreadId(null)}>
         {activeThread && (
           <SafeAreaView style={[styles.chatModalContainer, { backgroundColor: palette.background }]} edges={["top", "bottom"]}>
             {/* Conversation Header */}
             <View style={[styles.modalHeader, { borderBottomColor: palette.borderSubtle }]}>
-              <TouchableOpacity style={styles.backBtn} onPress={() => setActiveThread(null)}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => setActiveThreadId(null)}>
                 <ChevronLeft size={24} color={palette.textPrimary} />
               </TouchableOpacity>
 
@@ -633,5 +634,119 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.medium,
+  },
+  newChatBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  newChatBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  emptyInboxCard: {
+    padding: spacing.xl,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.md,
+  },
+  emptyInboxTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  emptyInboxSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+    maxWidth: 360,
+    marginBottom: spacing.md,
+  },
+  emptyInboxBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  emptyInboxBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+  newChatSheet: {
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    padding: spacing.lg,
+    paddingBottom: 40,
+    maxHeight: "80%",
+  },
+  newChatHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  newChatTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 44,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: typography.sizes.sm,
+  },
+  startCustomBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  startCustomBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  friendsListLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  friendPickRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  friendPickAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  friendPickName: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  friendPickHandle: {
+    fontSize: 11,
   },
 });

@@ -80,7 +80,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
               <View style={styles.subtitleRow}>
                 {isPlaying && <View style={[styles.pulsingDot, { backgroundColor: "#10B981" }]} />}
                 <Text style={[styles.desktopArtist, { color: palette.textSecondary }]} numberOfLines={1}>
-                  {currentTrack.artist} · <Text style={{ color: palette.textPrimary, fontWeight: "600" }}>{currentRoom?.name || "Late Night Family"}</Text>
+                  {currentTrack.artist} · <Text style={{ color: palette.textPrimary, fontWeight: "600" }}>{currentRoom?.name || "Listening Room"}</Text>
                 </Text>
               </View>
             </View>
@@ -174,7 +174,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
             {currentTrack.title}
           </Text>
           <Text style={[styles.mobileDockArtist, { color: palette.textSecondary }]} numberOfLines={1}>
-            {currentTrack.artist} · {currentRoom?.name || "Late Night Family"}
+            {currentTrack.artist} · {currentRoom?.name || "Listening Room"}
           </Text>
         </View>
 

@@ -41,34 +41,18 @@ import { usePlaybackStore, DUCKING_PROFILES, DuckingProfileType } from "../../sr
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
+import { useSocialStore, FriendItem, FriendRequestItem } from "../../src/store/socialStore";
+import { useRoomsStore } from "../../src/store/roomsStore";
+
 type ProfileTab = "SETTINGS" | "FRIENDS" | "REQUESTS" | "FIND";
 type PrivacyMode = "PUBLIC" | "FRIENDS" | "GHOST";
-
-interface FriendItem {
-  id: string;
-  name: string;
-  handle: string;
-  avatar: string;
-  status: "IN_ROOM" | "ONLINE" | "OFFLINE";
-  currentTrack?: string;
-  artist?: string;
-  roomName?: string;
-  roomId?: string;
-}
-
-interface FriendRequestItem {
-  id: string;
-  name: string;
-  handle: string;
-  avatar: string;
-  mutualCount: number;
-  message?: string;
-}
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { isDark, palette, toggleTheme } = useThemeStore();
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateProfile } = useAuthStore();
+  const { rooms } = useRoomsStore();
+  const { friends, pendingRequests, acceptRequest, declineRequest, addFriend, sendRequest, sentRequests } = useSocialStore();
   const { duckingProfile, setDuckingProfile, playTrackImmediate } = usePlaybackStore();
 
   const [activeTab, setActiveTab] = useState<ProfileTab>("SETTINGS");
@@ -78,104 +62,48 @@ export default function ProfileScreen() {
 
   // Edit profile state
   const [showEditModal, setShowEditModal] = useState(false);
-  const [displayName, setDisplayName] = useState(user?.displayName || "Alex Rivers");
+  const [displayName, setDisplayName] = useState(user?.displayName || "Listener");
   const [bio, setBio] = useState(
     user?.bio || "Deep lo-fi beats, synthwave sunsets, and late night conversations."
   );
 
-  // Friends & Requests state
-  const [friendsList, setFriendsList] = useState<FriendItem[]>([
-    {
-      id: "f1",
-      name: "Aisha",
-      handle: "@aisha",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&fit=crop&q=80",
-      status: "IN_ROOM",
-      roomName: "Late Night Family",
-      roomId: "room-late-night-1",
-      currentTrack: "Midnight Ambient Waves",
-      artist: "Sony Sound Collective",
-    },
-    {
-      id: "f2",
-      name: "Rahul",
-      handle: "@rahul",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&fit=crop&q=80",
-      status: "IN_ROOM",
-      roomName: "Late Night Family",
-      roomId: "room-late-night-1",
-      currentTrack: "Tokyo Rain & Neon Lights",
-      artist: "Kaito & Maya",
-    },
-    {
-      id: "f3",
-      name: "Priya",
-      handle: "@priya",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&fit=crop&q=80",
-      status: "ONLINE",
-      currentTrack: "Solar Flare Horizon",
-      artist: "Aura Electric",
-    },
-    {
-      id: "f4",
-      name: "Marcus",
-      handle: "@marcus",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&fit=crop&q=80",
-      status: "OFFLINE",
-    },
-  ]);
-
-  const [pendingRequests, setPendingRequests] = useState<FriendRequestItem[]>([
-    {
-      id: "req-1",
-      name: "Devon Miller",
-      handle: "@devon_m",
-      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&fit=crop&q=80",
-      mutualCount: 3,
-      message: "Hey! Loving your lo-fi playlists in the coding room.",
-    },
-    {
-      id: "req-2",
-      name: "Sarah Chen",
-      handle: "@sarah_c",
-      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&fit=crop&q=80",
-      mutualCount: 1,
-      message: "Fellow synthwave producer. Let's sync up!",
-    },
-  ]);
-
   const [searchFriendQuery, setSearchFriendQuery] = useState("");
-  const [sentRequestIds, setSentRequestIds] = useState<Record<string, boolean>>({});
 
   const stats = [
-    { label: "Hours Synced", value: "42.5 h" },
-    { label: "Rooms Hosted", value: "14" },
-    { label: "Tracks Queued", value: "38" },
-    { label: "Sync Precision", value: "<15ms" },
+    { label: "Rooms Hosted", value: String(rooms.length) },
+    { label: "Friends Connected", value: String(friends.length) },
+    { label: "Sync Precision", value: "<10ms" },
+    { label: "Opus Audio", value: "48kHz" },
   ];
 
+  const handleSaveProfile = () => {
+    updateProfile({ displayName, bio });
+    setShowEditModal(false);
+  };
+
+  const handleAddDirectFriend = (handleOrName: string) => {
+    if (!handleOrName.trim()) return;
+    const raw = handleOrName.trim().replace(/^@/, "");
+    addFriend({
+      id: "friend-" + Date.now(),
+      name: raw.charAt(0).toUpperCase() + raw.slice(1),
+      handle: "@" + raw.toLowerCase(),
+      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&fit=crop&q=80",
+      status: "ONLINE",
+    });
+    setSearchFriendQuery("");
+  };
+
   const handleAcceptRequest = (req: FriendRequestItem) => {
-    setPendingRequests((prev) => prev.filter((r) => r.id !== req.id));
-    setFriendsList((prev) => [
-      ...prev,
-      {
-        id: req.id,
-        name: req.name,
-        handle: req.handle,
-        avatar: req.avatar,
-        status: "ONLINE",
-        currentTrack: "Blinding Lights",
-        artist: "The Weeknd",
-      },
-    ]);
+    acceptRequest(req);
   };
 
   const handleDeclineRequest = (reqId: string) => {
-    setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
+    declineRequest(reqId);
   };
 
   const handleSendFriendRequest = (userId: string) => {
-    setSentRequestIds((prev) => ({ ...prev, [userId]: true }));
+    sendRequest(userId);
   };
 
   const handleLogout = () => {
@@ -260,7 +188,7 @@ export default function ProfileScreen() {
           >
             <Users size={14} color={activeTab === "FRIENDS" ? palette.accentInverted : palette.textTertiary} style={{ marginRight: 6 }} />
             <Text style={[styles.segmentText, { color: activeTab === "FRIENDS" ? palette.accentInverted : palette.textTertiary }]}>
-              Friends ({friendsList.length})
+              Friends ({friends.length})
             </Text>
           </TouchableOpacity>
 
@@ -456,76 +384,93 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
-                My Friends ({friendsList.length})
+                My Friends ({friends.length})
               </Text>
               <Text style={[styles.sectionSub, { color: palette.textTertiary }]}>Live listening status across active rooms</Text>
             </View>
 
-            <View style={styles.friendsList}>
-              {friendsList.map((friend) => (
-                <View
-                  key={friend.id}
-                  style={[
-                    styles.friendCard,
-                    { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
-                  ]}
+            {friends.length === 0 ? (
+              <View style={[styles.emptyCard, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
+                <Users size={36} color={palette.accent} style={{ marginBottom: 10 }} />
+                <Text style={[styles.emptyTitle, { color: palette.textPrimary }]}>No friends added yet</Text>
+                <Text style={[styles.emptySub, { color: palette.textTertiary }]}>
+                  Connect with friends to listen together, share rooms, and talk in real time.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.emptyActionBtn, { backgroundColor: palette.accent }]}
+                  onPress={() => setActiveTab("FIND")}
                 >
-                  <Image source={{ uri: friend.avatar }} style={styles.friendAvatar} />
-                  <View style={styles.friendInfo}>
-                    <View style={styles.friendNameRow}>
-                      <Text style={[styles.friendName, { color: palette.textPrimary }]}>{friend.name}</Text>
-                      <Text style={[styles.friendHandle, { color: palette.textTertiary }]}>{friend.handle}</Text>
+                  <UserPlus size={14} color={palette.accentInverted} style={{ marginRight: 6 }} />
+                  <Text style={[styles.emptyActionBtnText, { color: palette.accentInverted }]}>Add Friends</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.friendsList}>
+                {friends.map((friend) => (
+                  <View
+                    key={friend.id}
+                    style={[
+                      styles.friendCard,
+                      { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                    ]}
+                  >
+                    <Image source={{ uri: friend.avatar }} style={styles.friendAvatar} />
+                    <View style={styles.friendInfo}>
+                      <View style={styles.friendNameRow}>
+                        <Text style={[styles.friendName, { color: palette.textPrimary }]}>{friend.name}</Text>
+                        <Text style={[styles.friendHandle, { color: palette.textTertiary }]}>{friend.handle}</Text>
+                      </View>
+
+                      {friend.status === "IN_ROOM" && (
+                        <View style={styles.friendActivityRow}>
+                          <View style={[styles.statusDot, { backgroundColor: "#10B981" }]} />
+                          <Text style={[styles.friendActivityText, { color: palette.textSecondary }]} numberOfLines={1}>
+                            In <Text style={{ fontWeight: "700", color: palette.textPrimary }}>{friend.roomName || "Live Room"}</Text> · {friend.currentTrack || "Listening"}
+                          </Text>
+                        </View>
+                      )}
+
+                      {friend.status === "ONLINE" && (
+                        <View style={styles.friendActivityRow}>
+                          <View style={[styles.statusDot, { backgroundColor: "#3B82F6" }]} />
+                          <Text style={[styles.friendActivityText, { color: palette.textSecondary }]} numberOfLines={1}>
+                            {friend.currentTrack ? `Listening to ${friend.currentTrack}` : "Online · Ready to listen"}
+                          </Text>
+                        </View>
+                      )}
+
+                      {friend.status === "OFFLINE" && (
+                        <View style={styles.friendActivityRow}>
+                          <View style={[styles.statusDot, { backgroundColor: palette.textTertiary }]} />
+                          <Text style={[styles.friendActivityTextOffline, { color: palette.textTertiary }]}>Offline</Text>
+                        </View>
+                      )}
                     </View>
 
-                    {friend.status === "IN_ROOM" && (
-                      <View style={styles.friendActivityRow}>
-                        <View style={[styles.statusDot, { backgroundColor: "#10B981" }]} />
-                        <Text style={[styles.friendActivityText, { color: palette.textSecondary }]} numberOfLines={1}>
-                          In <Text style={{ fontWeight: "700", color: palette.textPrimary }}>{friend.roomName}</Text> · {friend.currentTrack}
-                        </Text>
-                      </View>
-                    )}
+                    <View style={styles.friendActions}>
+                      {friend.status !== "OFFLINE" && (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          style={[styles.listenWithBtn, { backgroundColor: palette.accent }]}
+                          onPress={() => handleListenWithFriend(friend)}
+                        >
+                          <Play size={13} color={palette.accentInverted} fill={palette.accentInverted} style={{ marginRight: 4 }} />
+                          <Text style={[styles.listenWithBtnText, { color: palette.accentInverted }]}>Listen</Text>
+                        </TouchableOpacity>
+                      )}
 
-                    {friend.status === "ONLINE" && (
-                      <View style={styles.friendActivityRow}>
-                        <View style={[styles.statusDot, { backgroundColor: "#3B82F6" }]} />
-                        <Text style={[styles.friendActivityText, { color: palette.textSecondary }]} numberOfLines={1}>
-                          Listening to {friend.currentTrack}
-                        </Text>
-                      </View>
-                    )}
-
-                    {friend.status === "OFFLINE" && (
-                      <View style={styles.friendActivityRow}>
-                        <View style={[styles.statusDot, { backgroundColor: palette.textTertiary }]} />
-                        <Text style={[styles.friendActivityTextOffline, { color: palette.textTertiary }]}>Offline</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.friendActions}>
-                    {friend.status !== "OFFLINE" && (
                       <TouchableOpacity
                         activeOpacity={0.8}
-                        style={[styles.listenWithBtn, { backgroundColor: palette.accent }]}
-                        onPress={() => handleListenWithFriend(friend)}
+                        style={[styles.chatFriendBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
+                        onPress={() => router.push("/(tabs)/messages")}
                       >
-                        <Play size={13} color={palette.accentInverted} fill={palette.accentInverted} style={{ marginRight: 4 }} />
-                        <Text style={[styles.listenWithBtnText, { color: palette.accentInverted }]}>Listen</Text>
+                        <MessageSquare size={14} color={palette.textPrimary} />
                       </TouchableOpacity>
-                    )}
-
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      style={[styles.chatFriendBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
-                      onPress={() => router.push("/(tabs)/messages")}
-                    >
-                      <MessageSquare size={14} color={palette.textPrimary} />
-                    </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
@@ -599,9 +544,11 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
-                Discover Audiophiles
+                Connect With Friends
               </Text>
-              <Text style={[styles.sectionSub, { color: palette.textTertiary }]}>Search users or add mutual friends across rooms</Text>
+              <Text style={[styles.sectionSub, { color: palette.textTertiary }]}>
+                Enter any username or handle to add friends and sync audio in real time.
+              </Text>
             </View>
 
             <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -609,78 +556,31 @@ export default function ProfileScreen() {
               <TextInput
                 value={searchFriendQuery}
                 onChangeText={setSearchFriendQuery}
-                placeholder="Search username, handle, or music taste..."
+                placeholder="Type name or handle (e.g. Maya, Dev)..."
                 placeholderTextColor={palette.textTertiary}
                 style={[styles.searchInput, { color: palette.textPrimary }]}
+                onSubmitEditing={() => handleAddDirectFriend(searchFriendQuery)}
               />
+              {searchFriendQuery.trim().length > 0 && (
+                <TouchableOpacity
+                  style={[styles.connectDirectBtn, { backgroundColor: palette.accent }]}
+                  onPress={() => handleAddDirectFriend(searchFriendQuery)}
+                >
+                  <UserPlus size={14} color={palette.accentInverted} style={{ marginRight: 4 }} />
+                  <Text style={[styles.connectDirectBtnText, { color: palette.accentInverted }]}>Connect</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
-            <View style={styles.suggestionsList}>
-              {[
-                {
-                  id: "sug-1",
-                  name: "Elena Rostova",
-                  handle: "@elena_r",
-                  genre: "Acoustic & Vinyl",
-                  avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&fit=crop&q=80",
-                },
-                {
-                  id: "sug-2",
-                  name: "Kai Takahashi",
-                  handle: "@kaito_sound",
-                  genre: "Lo-Fi Beats & Anime",
-                  avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&fit=crop&q=80",
-                },
-                {
-                  id: "sug-3",
-                  name: "Maya Lin",
-                  handle: "@maya_synth",
-                  genre: "Synthwave & Future Funk",
-                  avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&fit=crop&q=80",
-                },
-              ].map((sug) => {
-                const isSent = !!sentRequestIds[sug.id];
-                return (
-                  <View
-                    key={sug.id}
-                    style={[
-                      styles.suggestionCard,
-                      { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
-                    ]}
-                  >
-                    <Image source={{ uri: sug.avatar }} style={styles.friendAvatar} />
-                    <View style={styles.friendInfo}>
-                      <Text style={[styles.friendName, { color: palette.textPrimary }]}>{sug.name}</Text>
-                      <Text style={[styles.friendHandle, { color: palette.textTertiary }]}>{sug.handle} · {sug.genre}</Text>
-                    </View>
-
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      style={[
-                        styles.addFriendBtn,
-                        isSent
-                          ? { backgroundColor: "rgba(16, 185, 129, 0.12)", borderColor: "#10B981" }
-                          : { backgroundColor: palette.accent, borderColor: palette.accent },
-                      ]}
-                      onPress={() => handleSendFriendRequest(sug.id)}
-                      disabled={isSent}
-                    >
-                      {isSent ? (
-                        <>
-                          <Check size={13} color="#10B981" style={{ marginRight: 4 }} />
-                          <Text style={[styles.addFriendText, { color: "#10B981" }]}>Sent</Text>
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus size={13} color={palette.accentInverted} style={{ marginRight: 4 }} />
-                          <Text style={[styles.addFriendText, { color: palette.accentInverted }]}>Add</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </View>
+            {searchFriendQuery.trim().length === 0 && (
+              <View style={[styles.emptyCard, { backgroundColor: palette.surface, borderColor: palette.borderSubtle, marginTop: spacing.md }]}>
+                <Sparkles size={28} color={palette.accent} style={{ marginBottom: 8 }} />
+                <Text style={[styles.emptyTitle, { color: palette.textPrimary }]}>User-Driven Connections</Text>
+                <Text style={[styles.emptySub, { color: palette.textTertiary }]}>
+                  Type any friend's name above and click Connect to add them to your persistent circle.
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
@@ -732,7 +632,7 @@ export default function ProfileScreen() {
 
             <TouchableOpacity
               style={[styles.modalSaveBtn, { backgroundColor: palette.accent }]}
-              onPress={() => setShowEditModal(false)}
+              onPress={handleSaveProfile}
             >
               <Text style={[styles.modalSaveText, { color: palette.accentInverted }]}>Save Changes</Text>
             </TouchableOpacity>
@@ -1137,6 +1037,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#71717A",
     marginTop: 4,
+    textAlign: "center",
+    maxWidth: 360,
+  },
+  emptyActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 14,
+  },
+  emptyActionBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  connectDirectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  connectDirectBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   searchBar: {
     flexDirection: "row",

@@ -66,6 +66,7 @@ import {
   DuckingProfileType,
 } from "../../src/store/playbackStore";
 import { useRoomStore } from "../../src/store/roomStore";
+import { useRoomsStore } from "../../src/store/roomsStore";
 import { useAuthStore } from "../../src/store/authStore";
 import { socketService } from "../../src/services/socketService";
 import { useSyncEngine } from "../../src/hooks/useSyncEngine";
@@ -77,7 +78,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function RoomScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const roomId = (id as string) || "room-late-night-1";
+  const roomId = (id as string) || "room-live";
   const { isDark, palette: themePalette } = useThemeStore();
   const { theme, activeDedication } = useRoomThemeStore();
   const palette = {
@@ -85,7 +86,9 @@ export default function RoomScreen() {
     accent: isDark ? (theme.accent || themePalette.accent) : themePalette.accent,
   };
 
-  const { token } = useAuthStore((s) => ({ token: s.tokens?.accessToken }));
+  const { token, user } = useAuthStore((s) => ({ token: s.tokens?.accessToken, user: s.user }));
+  const { getRoomById } = useRoomsStore();
+  const storedRoom = getRoomById(roomId);
 
   // Synchronized playback & ducking engines
   useSyncEngine(roomId);
@@ -112,6 +115,8 @@ export default function RoomScreen() {
 
   const {
     currentRoom,
+    setRoom,
+    addMessage,
     members,
     messages,
     reactions,
@@ -123,6 +128,31 @@ export default function RoomScreen() {
     isVoiceMuted,
     toggleMute,
   } = useRoomStore();
+
+  // If entering a room that exists in roomsStore, initialize room and starting track
+  useEffect(() => {
+    if (!currentRoom && storedRoom) {
+      const currentUser = user || { id: "user-me", username: "me", displayName: "You" };
+      setRoom(storedRoom, [
+        {
+          userId: currentUser.id,
+          roomId,
+          role: "HOST",
+          isMuted: false,
+          isDeafened: false,
+          isSpeaking: false,
+          joinedAt: new Date().toISOString(),
+          user: currentUser,
+        },
+      ]);
+    }
+  }, [currentRoom, storedRoom, roomId, user]);
+
+  useEffect(() => {
+    if (!currentTrack && storedRoom?.currentTrack) {
+      playTrackImmediate(storedRoom.currentTrack);
+    }
+  }, [currentTrack, storedRoom]);
 
   const [activeTab, setActiveTab] = useState<"chat" | "voice" | "queue">("chat");
   const [chatInput, setChatInput] = useState("");
@@ -197,11 +227,12 @@ export default function RoomScreen() {
   };
 
   const handleTriggerSuperReaction = (type: SuperReactionType) => {
+    const currentUser = user || { id: "user-me", username: "me", displayName: "You" };
     const payload: SuperReactionPayload = {
       roomId,
       type,
-      userId: "user-1",
-      userName: "Sanju (You)",
+      userId: currentUser.id,
+      userName: currentUser.displayName,
       timestamp: Date.now(),
     };
     setSuperReaction(payload);
@@ -210,7 +241,17 @@ export default function RoomScreen() {
 
   const handleSendMessage = () => {
     if (!chatInput.trim()) return;
-    socketService.sendChatMessage(roomId, chatInput.trim());
+    const content = chatInput.trim();
+    const currentUser = user || { id: "user-me", username: "me", displayName: "You" };
+    addMessage({
+      id: "msg-" + Date.now(),
+      roomId,
+      type: "TEXT",
+      content,
+      createdAt: new Date().toISOString(),
+      sender: currentUser,
+    });
+    socketService.sendChatMessage(roomId, content);
     setChatInput("");
   };
 
@@ -258,7 +299,9 @@ export default function RoomScreen() {
           <ChevronDown size={22} color={palette.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={[styles.roomTitle, { color: palette.textPrimary }]}>{currentRoom?.name || "Late Night Family"}</Text>
+          <Text style={[styles.roomTitle, { color: palette.textPrimary }]}>
+            {currentRoom?.name || storedRoom?.name || "Listening Room"}
+          </Text>
           <View style={styles.liveMeta}>
             <View style={[styles.liveDot, { backgroundColor: palette.speaking }]} />
             <Text style={[styles.roomSubtitle, { color: palette.textTertiary }]}>{members.length} listening synchronized</Text>
@@ -321,19 +364,35 @@ export default function RoomScreen() {
             onSeek={handleSeek}
           />
         ) : (
-          <View style={styles.artworkContainer}>
+          <TouchableOpacity
+            activeOpacity={currentTrack ? 1 : 0.8}
+            onPress={() => {
+              if (!currentTrack) setShowSearchModal(true);
+            }}
+            style={styles.artworkContainer}
+          >
             <Image
               source={{ uri: currentTrack?.artworkUrl || "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&fit=crop&q=80" }}
               style={styles.artwork}
             />
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Track Title & Artist */}
-        <View style={styles.trackInfo}>
-          <Text style={[styles.trackTitle, { color: palette.textPrimary }]}>{currentTrack?.title || "Blinding Lights"}</Text>
-          <Text style={[styles.artistName, { color: palette.textSecondary }]}>{currentTrack?.artist || "The Weeknd"}</Text>
-        </View>
+        <TouchableOpacity
+          activeOpacity={currentTrack ? 1 : 0.8}
+          onPress={() => {
+            if (!currentTrack) setShowSearchModal(true);
+          }}
+          style={styles.trackInfo}
+        >
+          <Text style={[styles.trackTitle, { color: palette.textPrimary }]}>
+            {currentTrack?.title || "No track queued"}
+          </Text>
+          <Text style={[styles.artistName, { color: palette.textSecondary }]}>
+            {currentTrack?.artist || "Tap to select music from library"}
+          </Text>
+        </TouchableOpacity>
 
         {/* Real-time Frequency Spectrum Visualizer */}
         <AudioSpectrumVisualizer
@@ -669,12 +728,18 @@ export default function RoomScreen() {
         {activeTab === "chat" && (
           <View style={styles.chatSection}>
             <View style={styles.messageFeed}>
-              {messages.map((msg) => (
-                <View key={msg.id} style={styles.messageRow}>
-                  <Text style={[styles.msgSender, { color: palette.textPrimary }]}>{msg.sender.displayName}: </Text>
-                  <Text style={[styles.msgContent, { color: palette.textSecondary }]}>{msg.content}</Text>
-                </View>
-              ))}
+              {messages.length === 0 ? (
+                <Text style={{ fontSize: 13, color: palette.textTertiary, fontStyle: "italic", textAlign: "center", marginVertical: 12 }}>
+                  No messages yet. Say hello or introduce the vibe!
+                </Text>
+              ) : (
+                messages.map((msg) => (
+                  <View key={msg.id} style={styles.messageRow}>
+                    <Text style={[styles.msgSender, { color: palette.textPrimary }]}>{msg.sender.displayName}: </Text>
+                    <Text style={[styles.msgContent, { color: palette.textSecondary }]}>{msg.content}</Text>
+                  </View>
+                ))
+              )}
             </View>
 
             <View style={[styles.chatInputRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>

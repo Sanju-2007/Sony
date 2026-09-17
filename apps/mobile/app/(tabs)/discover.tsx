@@ -26,49 +26,22 @@ import { usePlaybackStore } from "../../src/store/playbackStore";
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
+import { useRoomsStore } from "../../src/store/roomsStore";
+
 export default function DiscoverScreen() {
   const router = useRouter();
   const { palette, isDark } = useThemeStore();
   const { playTrackImmediate } = usePlaybackStore();
+  const { rooms } = useRoomsStore();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
 
   const categories = [
-    { title: "Ambient & Chill", count: "14 rooms", tag: "chill", artwork: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&fit=crop&q=80" },
-    { title: "Deep Focus & Code", count: "9 rooms", tag: "focus", artwork: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&fit=crop&q=80" },
-    { title: "Electronic / Synthwave", count: "22 rooms", tag: "electronic", artwork: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&fit=crop&q=80" },
-    { title: "Acoustic & Warm Vinyl", count: "6 rooms", tag: "acoustic", artwork: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&fit=crop&q=80" },
-  ];
-
-  const trendingRooms = [
-    {
-      id: "room-late-night-1",
-      name: "Late Night Family",
-      topic: "Synthwave & Deep Ambient",
-      listeners: 4,
-      track: "Blinding Lights",
-      artist: "The Weeknd",
-      artwork: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=200&fit=crop&q=80",
-    },
-    {
-      id: "room-coding-2",
-      name: "Coding With Friends",
-      topic: "Lo-Fi Chill & Realtime Presence",
-      listeners: 8,
-      track: "Coffee & Rain",
-      artist: "Aura",
-      artwork: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=200&fit=crop&q=80",
-    },
-    {
-      id: "room-acoustic-3",
-      name: "Sunday Acoustic & Coffee",
-      topic: "Organic instruments & warm vinyl",
-      listeners: 3,
-      track: "Paper Boats on the River",
-      artist: "Elena Rostova",
-      artwork: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&fit=crop&q=80",
-    },
+    { title: "Ambient & Chill", count: "Curated ambient vibes", tag: "chill", artwork: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&fit=crop&q=80" },
+    { title: "Deep Focus & Code", count: "Lo-Fi chill beats", tag: "focus", artwork: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&fit=crop&q=80" },
+    { title: "Electronic / Synthwave", count: "Retro synths & dance", tag: "electronic", artwork: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&fit=crop&q=80" },
+    { title: "Acoustic & Warm Vinyl", count: "Organic instruments", tag: "acoustic", artwork: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&fit=crop&q=80" },
   ];
 
   return (
@@ -108,39 +81,62 @@ export default function DiscoverScreen() {
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Flame size={16} color={palette.speaking} style={{ marginRight: 6 }} />
-            <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Trending Rooms</Text>
+            <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Live Stages</Text>
           </View>
 
-          <View style={styles.trendingList}>
-            {trendingRooms.map((room) => (
+          {rooms.length === 0 ? (
+            <View style={[styles.emptyDiscoverCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <Sparkles size={24} color={palette.accent} style={{ marginBottom: 8 }} />
+              <Text style={[styles.emptyDiscoverTitle, { color: palette.textPrimary }]}>No live stages currently</Text>
+              <Text style={[styles.emptyDiscoverSubtitle, { color: palette.textSecondary }]}>
+                Be the first to host! Create a room, queue tracks, and invite listeners to join your stage.
+              </Text>
               <TouchableOpacity
-                key={room.id}
-                style={[
-                  styles.trendingCard,
-                  { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
-                ]}
-                onPress={() => router.push("/room/" + room.id)}
+                style={[styles.emptyDiscoverBtn, { backgroundColor: palette.accent }]}
+                onPress={() => setShowCreateModal(true)}
               >
-                <Image source={{ uri: room.artwork }} style={styles.trendingThumb} />
-                <View style={styles.trendingInfo}>
-                  <Text style={[styles.trendingName, { color: palette.textPrimary }]}>{room.name}</Text>
-                  <Text style={[styles.trendingTopic, { color: palette.textTertiary }]} numberOfLines={1}>
-                    {room.topic}
-                  </Text>
-                  <View style={styles.trendingTrackRow}>
-                    <Music2 size={11} color={palette.textSecondary} style={{ marginRight: 4 }} />
-                    <Text style={[styles.trendingTrack, { color: palette.textSecondary }]} numberOfLines={1}>
-                      {room.track} · {room.artist}
-                    </Text>
-                  </View>
-                </View>
-                <View style={[styles.listenerPill, { backgroundColor: palette.background, borderColor: palette.border }]}>
-                  <Users size={11} color={palette.textSecondary} style={{ marginRight: 4 }} />
-                  <Text style={[styles.listenerCount, { color: palette.textSecondary }]}>{room.listeners}</Text>
-                </View>
+                <Plus size={15} color={palette.accentInverted} style={{ marginRight: 6 }} />
+                <Text style={[styles.emptyDiscoverBtnText, { color: palette.accentInverted }]}>Host a Room</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            </View>
+          ) : (
+            <View style={styles.trendingList}>
+              {rooms.map((room) => {
+                const trackTitle = room.currentTrack?.title || "No track queued";
+                const trackArtist = room.currentTrack?.artist || "Tap to select music";
+                const artworkUrl = room.currentTrack?.artworkUrl || "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=200&fit=crop&q=80";
+
+                return (
+                  <TouchableOpacity
+                    key={room.id}
+                    style={[
+                      styles.trendingCard,
+                      { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                    ]}
+                    onPress={() => router.push("/room/" + room.id)}
+                  >
+                    <Image source={{ uri: artworkUrl }} style={styles.trendingThumb} />
+                    <View style={styles.trendingInfo}>
+                      <Text style={[styles.trendingName, { color: palette.textPrimary }]}>{room.name}</Text>
+                      <Text style={[styles.trendingTopic, { color: palette.textTertiary }]} numberOfLines={1}>
+                        {room.description || "Active Listening Stage"}
+                      </Text>
+                      <View style={styles.trendingTrackRow}>
+                        <Music2 size={11} color={palette.textSecondary} style={{ marginRight: 4 }} />
+                        <Text style={[styles.trendingTrack, { color: palette.textSecondary }]} numberOfLines={1}>
+                          {trackTitle} · {trackArtist}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.listenerPill, { backgroundColor: palette.background, borderColor: palette.border }]}>
+                      <Users size={11} color={palette.textSecondary} style={{ marginRight: 4 }} />
+                      <Text style={[styles.listenerCount, { color: palette.textSecondary }]}>{room.participantCount || 1}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         {/* Curated Vibes Section */}
@@ -355,5 +351,36 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.75)",
     fontSize: 11,
     marginTop: 2,
+  },
+  emptyDiscoverCard: {
+    width: "100%",
+    padding: spacing.xl,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyDiscoverTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  emptyDiscoverSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+    maxWidth: 380,
+    marginBottom: spacing.md,
+  },
+  emptyDiscoverBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  emptyDiscoverBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
