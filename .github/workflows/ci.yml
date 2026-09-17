@@ -34,3 +34,6 @@ jobs:
 
       - name: Build Packages & API
         run: npm run build
+
+      - name: Export Mobile & Web Production Bundle
+        run: npm run mobile:build
