@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { PlaybackStateVector, TrackMetadata, DuckingState, QueueItemDto, PublicUser } from "@sony/types";
 import { AudioDuckingController } from "@sony/audio-ducking";
+import { webAudioService } from "../services/webAudioService";
 
 export interface ExtendedQueueItem extends QueueItemDto {
   upvotes: number;
@@ -133,7 +134,32 @@ const DEFAULT_QUEUE: ExtendedQueueItem[] = [
 export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
   duckingController.subscribe((vol, state) => {
     set({ volume: vol, duckingState: state });
+    webAudioService.setVolume(vol);
   });
+
+  webAudioService.subscribe(
+    (posMs) => {
+      set({ positionMs: posMs });
+    },
+    () => {
+      get().playNext();
+    }
+  );
+
+  // Background ticker so scrub bar & visualizer are dynamically animated even before audio clicks
+  if (typeof setInterval !== "undefined") {
+    setInterval(() => {
+      const state = get();
+      if (state.isPlaying && state.durationMs > 0) {
+        const nextPos = state.positionMs + 1000;
+        if (nextPos >= state.durationMs) {
+          state.playNext();
+        } else {
+          set({ positionMs: nextPos });
+        }
+      }
+    }, 1000);
+  }
 
   return {
     stateVector: {
@@ -190,7 +216,6 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
     },
 
     setPlaybackVector: (vector) => {
-
       set({
         stateVector: vector,
         currentTrack: vector.currentTrack || null,
@@ -198,15 +223,32 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
         positionMs: vector.positionMs,
         durationMs: vector.currentTrack?.durationMs || 200000,
       });
+      if (vector.isPlaying && vector.currentTrack) {
+        webAudioService.playTrack(vector.currentTrack, vector.positionMs);
+      } else if (!vector.isPlaying) {
+        webAudioService.pause();
+      }
     },
 
     togglePlay: () => {
       const current = get().isPlaying;
+      if (current) {
+        webAudioService.pause();
+      } else {
+        const track = get().currentTrack;
+        if (track) {
+          webAudioService.playTrack(track, get().positionMs);
+        } else {
+          webAudioService.resume();
+        }
+      }
       set({ isPlaying: !current });
     },
 
     seek: (targetMs) => {
-      set({ positionMs: Math.max(0, Math.min(targetMs, get().durationMs)) });
+      const clamped = Math.max(0, Math.min(targetMs, get().durationMs));
+      webAudioService.seek(clamped);
+      set({ positionMs: clamped });
     },
 
     setLocalPosition: (posMs) => {
@@ -279,6 +321,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
       const currentQueue = get().queue;
       if (currentQueue.length === 0) return;
       const [nextItem, ...remaining] = currentQueue;
+      webAudioService.playTrack(nextItem.track, 0);
       set({
         currentTrack: nextItem.track,
         positionMs: 0,
@@ -289,10 +332,11 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
     },
 
     playTrackImmediate: (track) => {
+      webAudioService.playTrack(track, 0);
       set({
         currentTrack: track,
         positionMs: 0,
-        durationMs: track.durationMs,
+        durationMs: track.durationMs || 200000,
         isPlaying: true,
       });
     },
