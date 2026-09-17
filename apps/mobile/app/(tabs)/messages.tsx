@@ -21,7 +21,9 @@ import {
   Disc,
   MoreVertical,
 } from "lucide-react-native";
-import { typography, colors, spacing, radii } from "../../src/theme/tokens";
+import { typography, spacing, radii } from "../../src/theme/tokens";
+import { useThemeStore } from "../../src/store/themeStore";
+import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -55,7 +57,7 @@ interface ChatThread {
 }
 
 export default function MessagesScreen() {
-  const palette = colors.light;
+  const { palette, isDark } = useThemeStore();
 
   const [threads, setThreads] = useState<ChatThread[]>([
     {
@@ -227,9 +229,12 @@ export default function MessagesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={[styles.eyebrow, { color: palette.textTertiary }]}>· direct</Text>
-          <Text style={[styles.mainTitle, { color: palette.textPrimary }]}>Messages</Text>
+        <View style={[styles.header, { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }]}>
+          <View>
+            <Text style={[styles.eyebrow, { color: palette.textTertiary }]}>· direct</Text>
+            <Text style={[styles.mainTitle, { color: palette.textPrimary }]}>Messages</Text>
+          </View>
+          <ThemeToggleButton />
         </View>
 
         <View style={styles.list}>
@@ -321,7 +326,7 @@ export default function MessagesScreen() {
                         style={[
                           styles.voiceMessageBubble,
                           {
-                            backgroundColor: isMe ? palette.textPrimary : palette.surface,
+                            backgroundColor: isMe ? palette.accent : palette.surface,
                             borderColor: palette.borderSubtle,
                           },
                         ]}
@@ -329,14 +334,14 @@ export default function MessagesScreen() {
                         <TouchableOpacity
                           style={[
                             styles.voicePlayBtn,
-                            { backgroundColor: isMe ? palette.surface : palette.textPrimary },
+                            { backgroundColor: isMe ? palette.accentInverted : palette.accent },
                           ]}
                           onPress={() => togglePlayVoice(msg.id)}
                         >
                           {playingVoiceId === msg.id ? (
-                            <Pause size={14} color={isMe ? palette.textPrimary : "#FFFFFF"} />
+                            <Pause size={14} color={isMe ? palette.accent : palette.accentInverted} />
                           ) : (
-                            <Play size={14} color={isMe ? palette.textPrimary : "#FFFFFF"} style={{ marginLeft: 2 }} />
+                            <Play size={14} color={isMe ? palette.accent : palette.accentInverted} style={{ marginLeft: 2 }} />
                           )}
                         </TouchableOpacity>
 
@@ -355,7 +360,7 @@ export default function MessagesScreen() {
                                     backgroundColor: isMe
                                       ? isPlayed
                                         ? palette.speaking
-                                        : "rgba(255,255,255,0.4)"
+                                        : isDark ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.4)"
                                       : isPlayed
                                       ? palette.speaking
                                       : palette.border,
@@ -369,7 +374,7 @@ export default function MessagesScreen() {
                         <Text
                           style={[
                             styles.voiceDurationText,
-                            { color: isMe ? "rgba(255,255,255,0.7)" : palette.textTertiary },
+                            { color: isMe ? (isDark ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)") : palette.textTertiary },
                           ]}
                         >
                           {msg.durationSec}s
@@ -381,7 +386,7 @@ export default function MessagesScreen() {
                         style={[
                           styles.textBubble,
                           {
-                            backgroundColor: isMe ? palette.textPrimary : palette.surface,
+                            backgroundColor: isMe ? palette.accent : palette.surface,
                             borderColor: palette.borderSubtle,
                           },
                         ]}
@@ -389,7 +394,7 @@ export default function MessagesScreen() {
                         <Text
                           style={[
                             styles.bubbleText,
-                            { color: isMe ? "#FFFFFF" : palette.textPrimary },
+                            { color: isMe ? palette.accentInverted : palette.textPrimary },
                           ]}
                         >
                           {msg.text}

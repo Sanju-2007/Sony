@@ -21,9 +21,11 @@ import {
   X,
   Sparkles,
 } from "lucide-react-native";
-import { typography, colors, spacing, radii } from "../../src/theme/tokens";
+import { typography, spacing, radii } from "../../src/theme/tokens";
 import { usePlaybackStore } from "../../src/store/playbackStore";
 import { CATALOG_TRACKS } from "../../src/components/music/MusicSearchModal";
+import { useThemeStore } from "../../src/store/themeStore";
+import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
 interface FriendActivity {
   id: string;
@@ -39,7 +41,7 @@ interface FriendActivity {
 
 export default function FriendsScreen() {
   const router = useRouter();
-  const palette = colors.light;
+  const { palette, isDark } = useThemeStore();
   const { playTrackImmediate } = usePlaybackStore();
 
   const [activeTab, setActiveTab] = useState<"activity" | "requests">("activity");
@@ -125,12 +127,15 @@ export default function FriendsScreen() {
             <Text style={[styles.eyebrow, { color: palette.textTertiary }]}>· connections</Text>
             <Text style={[styles.mainTitle, { color: palette.textPrimary }]}>Friends</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.addBtn, { backgroundColor: palette.surface, borderColor: palette.border }]}
-            onPress={() => setShowAddModal(true)}
-          >
-            <UserPlus size={18} color={palette.textPrimary} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <ThemeToggleButton />
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              onPress={() => setShowAddModal(true)}
+            >
+              <UserPlus size={18} color={palette.textPrimary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Tab Toggle (Activity vs Requests) */}
@@ -138,14 +143,14 @@ export default function FriendsScreen() {
           <TouchableOpacity
             style={[
               styles.tabBtn,
-              activeTab === "activity" && { backgroundColor: palette.textPrimary },
+              activeTab === "activity" && { backgroundColor: palette.accent },
             ]}
             onPress={() => setActiveTab("activity")}
           >
             <Text
               style={[
                 styles.tabBtnText,
-                { color: activeTab === "activity" ? "#FFFFFF" : palette.textSecondary },
+                { color: activeTab === "activity" ? palette.accentInverted : palette.textSecondary },
               ]}
             >
               Listening Activity ({friends.filter((f) => f.status !== "OFFLINE").length})
@@ -155,14 +160,14 @@ export default function FriendsScreen() {
           <TouchableOpacity
             style={[
               styles.tabBtn,
-              activeTab === "requests" && { backgroundColor: palette.textPrimary },
+              activeTab === "requests" && { backgroundColor: palette.accent },
             ]}
             onPress={() => setActiveTab("requests")}
           >
             <Text
               style={[
                 styles.tabBtnText,
-                { color: activeTab === "requests" ? "#FFFFFF" : palette.textSecondary },
+                { color: activeTab === "requests" ? palette.accentInverted : palette.textSecondary },
               ]}
             >
               Requests ({friendRequests.length})
@@ -231,10 +236,10 @@ export default function FriendsScreen() {
                   <View style={styles.cardActions}>
                     {f.status === "IN_ROOM" && f.roomId && (
                       <TouchableOpacity
-                        style={[styles.joinBtn, { backgroundColor: palette.textPrimary }]}
+                        style={[styles.joinBtn, { backgroundColor: palette.accent }]}
                         onPress={() => router.push("/room/" + f.roomId)}
                       >
-                        <Text style={styles.joinBtnText}>Join Room</Text>
+                        <Text style={[styles.joinBtnText, { color: palette.accentInverted }]}>Join Room</Text>
                       </TouchableOpacity>
                     )}
 
@@ -288,10 +293,10 @@ export default function FriendsScreen() {
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={[styles.acceptBtn, { backgroundColor: palette.textPrimary }]}
+                  style={[styles.acceptBtn, { backgroundColor: palette.accent }]}
                   onPress={() => {}}
                 >
-                  <Text style={styles.acceptBtnText}>Accept</Text>
+                  <Text style={[styles.acceptBtnText, { color: palette.accentInverted }]}>Accept</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -349,12 +354,14 @@ export default function FriendsScreen() {
                       style={[
                         styles.sendReqBtn,
                         {
-                          backgroundColor: isSent ? palette.speaking : palette.textPrimary,
+                          backgroundColor: isSent ? palette.speaking : palette.accent,
                         },
                       ]}
                       onPress={() => handleSendRequest(s.handle)}
                     >
-                      <Text style={styles.sendReqText}>{isSent ? "Sent ✓" : "Connect"}</Text>
+                      <Text style={[styles.sendReqText, { color: isSent ? "#FFFFFF" : palette.accentInverted }]}>
+                        {isSent ? "Sent ✓" : "Connect"}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -376,6 +383,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: spacing.sm,
     marginBottom: spacing.md,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   eyebrow: {
     fontSize: typography.sizes.xs,

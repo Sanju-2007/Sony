@@ -10,15 +10,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Search, Users, Plus, Music2, Sparkles } from "lucide-react-native";
-import { typography, colors, spacing, radii } from "../../src/theme/tokens";
+import { typography, spacing, radii } from "../../src/theme/tokens";
 import { usePlaybackStore } from "../../src/store/playbackStore";
+import { useThemeStore } from "../../src/store/themeStore";
 import { CreateRoomModal } from "../../src/components/room/CreateRoomModal";
 import { MusicSearchModal } from "../../src/components/music/MusicSearchModal";
 import { DotWaveBackground } from "../../src/components/particles/DotWaveBackground";
+import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const palette = colors.light;
+  const { isDark, palette } = useThemeStore();
   const { currentTrack, playTrackImmediate } = usePlaybackStore();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -61,34 +63,47 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Dynamic Antigravity Black Dots Wave Background */}
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={["top"]}
+    >
+      {/* Dynamic Antigravity Dots Wave Background */}
       <DotWaveBackground />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Top Minimal Brand */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.eyebrow}>· LISTEN TOGETHER</Text>
-            <Text style={styles.mainTitle}>What are you listening to?</Text>
+            <Text style={[styles.eyebrow, { color: palette.textTertiary }]}>· LISTEN TOGETHER</Text>
+            <Text style={[styles.mainTitle, { color: palette.textPrimary }]}>What are you listening to?</Text>
           </View>
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => setShowCreateModal(true)}
-          >
-            <Plus size={18} color="#FFFFFF" />
-          </TouchableOpacity>
+
+          <View style={styles.headerRightActions}>
+            <ThemeToggleButton />
+            <TouchableOpacity
+              style={[styles.createButton, { backgroundColor: palette.accent }]}
+              onPress={() => setShowCreateModal(true)}
+            >
+              <Plus size={18} color={palette.accentInverted} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Minimal Glass Search Bar */}
         <TouchableOpacity
           activeOpacity={0.8}
-          style={styles.searchBar}
+          style={[
+            styles.searchBar,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+            },
+          ]}
           onPress={() => setShowSearchModal(true)}
         >
-          <Search size={16} color="#71717A" style={{ marginRight: 10 }} />
-          <Text style={styles.searchPlaceholder}>
-            Search tracks, artists, or rooms...
+          <Search size={16} color={palette.textTertiary} style={{ marginRight: 10 }} />
+          <Text style={[styles.searchPlaceholder, { color: palette.textTertiary }]}>
+            Search any track, artist, or band worldwide...
           </Text>
         </TouchableOpacity>
 
@@ -97,13 +112,19 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.liveIndicator}>
               <View style={[styles.liveDot, { backgroundColor: palette.speaking }]} />
-              <Text style={styles.sectionTitle}>Live Featured Party</Text>
+              <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Live Featured Party</Text>
             </View>
           </View>
 
           <TouchableOpacity
             activeOpacity={0.92}
-            style={styles.heroCard}
+            style={[
+              styles.heroCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+              },
+            ]}
             onPress={() => router.push("/room/room-late-night-1")}
           >
             <Image
@@ -117,15 +138,15 @@ export default function HomeScreen() {
                   <Text style={styles.livePillText}>LIVE NOW · 4 SYNCED</Text>
                 </View>
               </View>
-              <Text style={styles.heroTrack} numberOfLines={1}>
+              <Text style={[styles.heroTrack, { color: palette.textPrimary }]} numberOfLines={1}>
                 {currentTrack?.title || "Blinding Lights"}
               </Text>
-              <Text style={styles.heroArtist}>
+              <Text style={[styles.heroArtist, { color: palette.textSecondary }]}>
                 {currentTrack?.artist || "The Weeknd"} · Late Night Family
               </Text>
             </View>
-            <View style={styles.joinBtn}>
-              <Text style={styles.joinBtnText}>Join Stage</Text>
+            <View style={[styles.joinBtn, { backgroundColor: palette.accent }]}>
+              <Text style={[styles.joinBtnText, { color: palette.accentInverted }]}>Join Stage</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -141,7 +162,13 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={room.id}
                 activeOpacity={0.85}
-                style={[styles.roomCard, { backgroundColor: palette.card, borderColor: palette.border }]}
+                style={[
+                  styles.roomCard,
+                  {
+                    backgroundColor: palette.card,
+                    borderColor: palette.border,
+                  },
+                ]}
                 onPress={() => router.push("/room/" + room.id)}
               >
                 <View style={styles.roomHeaderRow}>
@@ -149,15 +176,23 @@ export default function HomeScreen() {
                     <Text style={[styles.roomName, { color: palette.textPrimary }]}>{room.name}</Text>
                     <Text style={[styles.roomTopic, { color: palette.textTertiary }]}>{room.topic}</Text>
                   </View>
-                  <View style={[styles.listenerPill, { backgroundColor: "rgba(99, 102, 241, 0.12)", borderColor: "rgba(99, 102, 241, 0.25)" }]}>
+                  <View
+                    style={[
+                      styles.listenerPill,
+                      {
+                        backgroundColor: isDark ? "rgba(129, 140, 248, 0.12)" : "rgba(99, 102, 241, 0.12)",
+                        borderColor: isDark ? "rgba(129, 140, 248, 0.25)" : "rgba(99, 102, 241, 0.25)",
+                      },
+                    ]}
+                  >
                     <Users size={12} color="#818CF8" style={{ marginRight: 4 }} />
                     <Text style={[styles.listenerCount, { color: "#818CF8" }]}>{room.listeners}</Text>
                   </View>
                 </View>
 
                 <View style={styles.roomTrackRow}>
-                  <Music2 size={13} color="#94A3B8" style={{ marginRight: 6 }} />
-                  <Text style={[styles.roomTrackName, { color: "#94A3B8" }] } numberOfLines={1}>
+                  <Music2 size={13} color={palette.textTertiary} style={{ marginRight: 6 }} />
+                  <Text style={[styles.roomTrackName, { color: palette.textSecondary }]} numberOfLines={1}>
                     {room.currentTrack} · {room.artist}
                   </Text>
                 </View>
@@ -190,7 +225,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
     position: "relative",
   },
   scrollContent: {
@@ -209,28 +243,29 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
+  headerRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   eyebrow: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1.2,
     marginBottom: 4,
-    color: "#71717A",
     textTransform: "uppercase",
   },
   mainTitle: {
     fontSize: 26,
     fontWeight: "800",
     letterSpacing: -0.5,
-    color: "#0A0A0A",
   },
   createButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#0A0A0A",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -243,8 +278,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.08)",
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
     marginBottom: spacing.xl,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
@@ -253,7 +286,6 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     fontSize: typography.sizes.sm,
-    color: "#8E8E93",
   },
   section: {
     marginBottom: spacing.xl,
@@ -278,7 +310,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: -0.2,
-    color: "#0A0A0A",
   },
   heroCard: {
     flexDirection: "row",
@@ -286,11 +317,9 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.08)",
-    backgroundColor: "rgba(255, 255, 255, 0.82)",
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.08,
     shadowRadius: 16,
   },
   heroArtwork: {
@@ -324,22 +353,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: -0.2,
-    color: "#0A0A0A",
   },
   heroArtist: {
     fontSize: 13,
-    color: "#52525B",
     marginTop: 2,
   },
   joinBtn: {
-    backgroundColor: "#0A0A0A",
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 10,
     marginLeft: 12,
   },
   joinBtnText: {
-    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "700",
   },
@@ -360,11 +385,9 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.08)",
-    backgroundColor: "rgba(255, 255, 255, 0.82)",
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 10,
   },
   roomHeaderRow: {
@@ -380,11 +403,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     letterSpacing: -0.2,
-    color: "#0A0A0A",
   },
   roomTopic: {
     fontSize: 12,
-    color: "#71717A",
     marginTop: 2,
   },
   listenerPill: {
@@ -394,13 +415,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radii.full,
     borderWidth: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.04)",
-    borderColor: "rgba(0, 0, 0, 0.08)",
   },
   listenerCount: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#0A0A0A",
   },
   roomTrackRow: {
     flexDirection: "row",
@@ -410,6 +428,5 @@ const styles = StyleSheet.create({
   roomTrackName: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#52525B",
   },
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View, Platform, useWindowDimensions } from "react-native";
+import { useThemeStore } from "../../store/themeStore";
 
 interface DotWaveBackgroundProps {
   speed?: number;
@@ -11,6 +12,7 @@ export const DotWaveBackground: React.FC<DotWaveBackgroundProps> = ({
   density = "normal",
 }) => {
   const { width, height } = useWindowDimensions();
+  const { isDark } = useThemeStore();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -114,7 +116,9 @@ export const DotWaveBackground: React.FC<DotWaveBackgroundProps> = ({
 
           ctx.beginPath();
           ctx.arc(screenX, screenY, radius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(15, 15, 20, ${alpha})`;
+          ctx.fillStyle = isDark
+            ? `rgba(240, 245, 255, ${alpha * 0.85})`
+            : `rgba(15, 15, 20, ${alpha})`;
           ctx.fill();
         }
       }
@@ -129,11 +133,17 @@ export const DotWaveBackground: React.FC<DotWaveBackgroundProps> = ({
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMouseMove);
     };
-  }, [width, height, speed, density]);
+  }, [width, height, speed, density, isDark]);
 
   if (Platform.OS === "web") {
     return (
-      <View style={styles.container} pointerEvents="none">
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: isDark ? "#090A0F" : "#FFFFFF" },
+        ]}
+        pointerEvents="none"
+      >
         {/* @ts-ignore */}
         <canvas
           ref={canvasRef}
@@ -150,13 +160,20 @@ export const DotWaveBackground: React.FC<DotWaveBackgroundProps> = ({
     );
   }
 
-  return <View style={styles.container} pointerEvents="none" />;
+  return (
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? "#090A0F" : "#FFFFFF" },
+      ]}
+      pointerEvents="none"
+    />
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#FFFFFF",
     overflow: "hidden",
     zIndex: 0,
   },

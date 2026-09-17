@@ -15,6 +15,8 @@ import { AIDJSettingsModal } from "../../src/components/room/AIDJSettingsModal";
 import { MilestonesModal } from "../../src/components/room/MilestonesModal";
 import { SpatialAudioStageModal } from "../../src/components/voice/SpatialAudioStageModal";
 import { useRoomThemeStore } from "../../src/store/roomThemeStore";
+import { useThemeStore } from "../../src/store/themeStore";
+import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
@@ -76,19 +78,11 @@ export default function RoomScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const roomId = (id as string) || "room-late-night-1";
+  const { isDark, palette: themePalette } = useThemeStore();
   const { theme, activeDedication } = useRoomThemeStore();
   const palette = {
-    ...colors.dark,
-    background: theme.background,
-    surface: theme.surface,
-    surfaceHover: theme.surfaceHover,
-    card: theme.card,
-    accent: theme.accent,
-    border: theme.border,
-    borderSubtle: theme.borderSubtle,
-    textPrimary: theme.textPrimary,
-    textSecondary: theme.textSecondary,
-    textTertiary: theme.textTertiary,
+    ...themePalette,
+    accent: isDark ? (theme.accent || themePalette.accent) : themePalette.accent,
   };
 
   const { token } = useAuthStore((s) => ({ token: s.tokens?.accessToken }));
@@ -270,6 +264,7 @@ export default function RoomScreen() {
             <Text style={[styles.roomSubtitle, { color: palette.textTertiary }]}>{members.length} listening synchronized</Text>
           </View>
         </View>
+        <ThemeToggleButton />
         <TouchableOpacity style={styles.iconBtn} onPress={() => setShowSearchModal(true)}>
           <Plus size={20} color={palette.textPrimary} />
         </TouchableOpacity>
@@ -300,19 +295,19 @@ export default function RoomScreen() {
 
           <View style={[styles.viewTogglePill, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
             <TouchableOpacity
-              style={[styles.viewToggleBtn, !showLyrics && { backgroundColor: palette.textPrimary }]}
+              style={[styles.viewToggleBtn, !showLyrics && { backgroundColor: palette.accent }]}
               onPress={() => setShowLyrics(false)}
             >
-              <Text style={[styles.viewToggleText, { color: !showLyrics ? "#FFFFFF" : palette.textSecondary }]}>
+              <Text style={[styles.viewToggleText, { color: !showLyrics ? palette.accentInverted : palette.textSecondary }]}>
                 Artwork
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.viewToggleBtn, showLyrics && { backgroundColor: palette.textPrimary }]}
+              style={[styles.viewToggleBtn, showLyrics && { backgroundColor: palette.accent }]}
               onPress={() => setShowLyrics(true)}
             >
-              <Text style={[styles.viewToggleText, { color: showLyrics ? "#FFFFFF" : palette.textSecondary }]}>
+              <Text style={[styles.viewToggleText, { color: showLyrics ? palette.accentInverted : palette.textSecondary }]}>
                 🎤 Live Lyrics
               </Text>
             </TouchableOpacity>
@@ -354,7 +349,7 @@ export default function RoomScreen() {
           positionMs={positionMs}
           durationMs={durationMs}
           onSeek={handleSeek}
-          isDark={false}
+          isDark={isDark}
         />
 
         {/* Minimal Playback Controls */}
@@ -364,13 +359,13 @@ export default function RoomScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.playPauseBtn, { backgroundColor: palette.textPrimary }]}
+            style={[styles.playPauseBtn, { backgroundColor: palette.accent }]}
             onPress={handlePlayToggle}
           >
             {isPlaying ? (
-              <Pause size={22} color="#FFFFFF" />
+              <Pause size={22} color={palette.accentInverted} />
             ) : (
-              <Play size={22} color="#FFFFFF" style={{ marginLeft: 3 }} />
+              <Play size={22} color={palette.accentInverted} style={{ marginLeft: 3 }} />
             )}
           </TouchableOpacity>
 

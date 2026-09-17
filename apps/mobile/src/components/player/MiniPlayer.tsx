@@ -11,7 +11,8 @@ import { useRouter } from "expo-router";
 import { Play, Pause, SkipForward, SkipBack, Maximize2, Sliders, Volume2 } from "lucide-react-native";
 import { usePlaybackStore } from "../../store/playbackStore";
 import { useRoomStore } from "../../store/roomStore";
-import { typography, colors, spacing, radii } from "../../theme/tokens";
+import { useThemeStore } from "../../store/themeStore";
+import { typography, spacing, radii } from "../../theme/tokens";
 
 interface MiniPlayerProps {
   isDesktop?: boolean;
@@ -21,7 +22,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = propIsDesktop ?? width >= 860;
-  const palette = colors.dark;
+  const { isDark, palette } = useThemeStore();
 
   const { currentTrack, isPlaying, togglePlay, playNext, positionMs, durationMs } =
     usePlaybackStore();
@@ -44,13 +45,26 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
 
   if (isDesktop) {
     return (
-      <View style={styles.desktopOuter}>
+      <View
+        style={[
+          styles.desktopOuter,
+          {
+            backgroundColor: palette.surface,
+            borderTopColor: palette.border,
+          },
+        ]}
+      >
         {/* Top Progress Line */}
-        <View style={styles.progressBarBackground}>
+        <View
+          style={[
+            styles.progressBarBackground,
+            { backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)" },
+          ]}
+        >
           <View
             style={[
               styles.progressBarFill,
-              { width: (`${progressPercent}%` as any), backgroundColor: "#0A0A0A" },
+              { width: (`${progressPercent}%` as any), backgroundColor: palette.accent },
             ]}
           />
         </View>
@@ -60,13 +74,13 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
           <TouchableOpacity activeOpacity={0.85} style={styles.desktopTrackInfo} onPress={handlePressCard}>
             <Image source={{ uri: currentTrack.artworkUrl }} style={styles.desktopArtwork} />
             <View style={styles.desktopTextWrap}>
-              <Text style={styles.desktopTitle} numberOfLines={1}>
+              <Text style={[styles.desktopTitle, { color: palette.textPrimary }]} numberOfLines={1}>
                 {currentTrack.title}
               </Text>
               <View style={styles.subtitleRow}>
                 {isPlaying && <View style={[styles.pulsingDot, { backgroundColor: "#10B981" }]} />}
-                <Text style={styles.desktopArtist} numberOfLines={1}>
-                  {currentTrack.artist} · <Text style={{ color: "#0A0A0A", fontWeight: "600" }}>{currentRoom?.name || "Late Night Family"}</Text>
+                <Text style={[styles.desktopArtist, { color: palette.textSecondary }]} numberOfLines={1}>
+                  {currentTrack.artist} · <Text style={{ color: palette.textPrimary, fontWeight: "600" }}>{currentRoom?.name || "Late Night Family"}</Text>
                 </Text>
               </View>
             </View>
@@ -76,40 +90,63 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
           <View style={styles.desktopCenterControls}>
             <View style={styles.desktopBtnRow}>
               <TouchableOpacity style={styles.iconBtn} onPress={togglePlay}>
-                <SkipBack size={16} color="#0A0A0A" />
+                <SkipBack size={16} color={palette.textPrimary} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.desktopPlayBtn, { backgroundColor: "#0A0A0A" }]}
+                style={[styles.desktopPlayBtn, { backgroundColor: palette.accent }]}
                 onPress={togglePlay}
               >
-                {isPlaying ? <Pause size={16} color="#FFFFFF" /> : <Play size={16} color="#FFFFFF" style={{ marginLeft: 2 }} />}
+                {isPlaying ? (
+                  <Pause size={16} color={palette.accentInverted} />
+                ) : (
+                  <Play size={16} color={palette.accentInverted} style={{ marginLeft: 2 }} />
+                )}
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={playNext}>
-                <SkipForward size={16} color="#0A0A0A" />
+                <SkipForward size={16} color={palette.textPrimary} />
               </TouchableOpacity>
             </View>
             <View style={styles.desktopScrubRow}>
-              <Text style={styles.timeText}>{formatTime(positionMs)}</Text>
-              <View style={styles.desktopScrubTrack}>
-                <View style={[styles.desktopScrubFill, { width: (`${progressPercent}%` as any) }]} />
+              <Text style={[styles.timeText, { color: palette.textTertiary }]}>{formatTime(positionMs)}</Text>
+              <View
+                style={[
+                  styles.desktopScrubTrack,
+                  { backgroundColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)" },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.desktopScrubFill,
+                    { width: (`${progressPercent}%` as any), backgroundColor: palette.accent },
+                  ]}
+                />
               </View>
-              <Text style={styles.timeText}>{formatTime(durationMs || 200000)}</Text>
+              <Text style={[styles.timeText, { color: palette.textTertiary }]}>{formatTime(durationMs || 200000)}</Text>
             </View>
           </View>
 
           {/* Right: Sound Tools & Expand */}
           <View style={styles.desktopRightTools}>
-            <View style={styles.syncBadge}>
-              <View style={[styles.pulsingDot, { backgroundColor: "#10B981" }]} />
-              <Text style={styles.syncBadgeText}>Lossless · &lt;15ms Sync</Text>
+            <View
+              style={[
+                styles.syncBadge,
+                {
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <View style={[styles.syncDot, { backgroundColor: "#10B981" }]} />
+              <Text style={[styles.syncBadgeText, { color: palette.textPrimary }]}>Lossless · &lt;15ms Sync</Text>
             </View>
+
             <TouchableOpacity
               activeOpacity={0.8}
-              style={styles.expandRoomBtn}
+              style={[styles.expandRoomBtn, { backgroundColor: palette.accent }]}
               onPress={handlePressCard}
             >
-              <Maximize2 size={13} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.expandRoomText}>Open Stage</Text>
+              <Maximize2 size={13} color={palette.accentInverted} style={{ marginRight: 6 }} />
+              <Text style={[styles.expandRoomText, { color: palette.accentInverted }]}>Open Stage</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -117,77 +154,45 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
     );
   }
 
+  // Mobile Floating Dock
   return (
-    <View style={styles.outerContainer}>
+    <View style={styles.mobileDockContainer}>
       <TouchableOpacity
         activeOpacity={0.92}
         style={[
-          styles.container,
+          styles.mobileDockCard,
           {
-            backgroundColor: "rgba(255, 255, 255, 0.88)",
-            borderColor: "rgba(0, 0, 0, 0.08)",
+            backgroundColor: palette.surface,
+            borderColor: palette.border,
           },
         ]}
         onPress={handlePressCard}
       >
-        {/* Top Mini Progress Line */}
-        <View style={styles.progressBarBackground}>
-          <View
-            style={[
-              styles.progressBarFill,
-              {
-                width: (`${progressPercent}%` as any),
-                backgroundColor: "#0A0A0A",
-              },
-            ]}
-          />
+        <Image source={{ uri: currentTrack.artworkUrl }} style={styles.mobileDockThumb} />
+        <View style={styles.mobileDockInfo}>
+          <Text style={[styles.mobileDockTitle, { color: palette.textPrimary }]} numberOfLines={1}>
+            {currentTrack.title}
+          </Text>
+          <Text style={[styles.mobileDockArtist, { color: palette.textSecondary }]} numberOfLines={1}>
+            {currentTrack.artist} · {currentRoom?.name || "Late Night Family"}
+          </Text>
         </View>
 
-        <View style={styles.innerContent}>
-          {/* Artwork */}
-          <Image source={{ uri: currentTrack.artworkUrl }} style={styles.artwork} />
+        <View style={styles.mobileDockActions}>
+          <TouchableOpacity
+            style={[styles.playPauseBtn, { backgroundColor: palette.accent }]}
+            onPress={togglePlay}
+          >
+            {isPlaying ? (
+              <Pause size={14} color={palette.accentInverted} />
+            ) : (
+              <Play size={14} color={palette.accentInverted} style={{ marginLeft: 2 }} />
+            )}
+          </TouchableOpacity>
 
-          {/* Track and Room Info */}
-          <View style={styles.textContainer}>
-            <Text style={[styles.title, { color: "#0A0A0A" }]} numberOfLines={1}>
-              {currentTrack.title}
-            </Text>
-            <View style={styles.subtitleRow}>
-              {isPlaying && (
-                <View style={[styles.pulsingDot, { backgroundColor: "#10B981" }]} />
-              )}
-              <Text style={[styles.artist, { color: "#52525B" }]} numberOfLines={1}>
-                {currentTrack.artist} · {currentRoom?.name || "Listening"}
-              </Text>
-            </View>
-          </View>
-
-          {/* Quick Playback Actions */}
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              style={[styles.playPauseBtn, { backgroundColor: "#0A0A0A" }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                togglePlay();
-              }}
-            >
-              {isPlaying ? (
-                <Pause size={14} color="#FFFFFF" />
-              ) : (
-                <Play size={14} color="#FFFFFF" style={{ marginLeft: 2 }} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.skipBtn}
-              onPress={(e) => {
-                e.stopPropagation();
-                playNext();
-              }}
-            >
-              <SkipForward size={16} color="#0A0A0A" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.skipBtn} onPress={playNext}>
+            <SkipForward size={16} color={palette.textPrimary} />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     </View>
@@ -195,52 +200,12 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    position: "absolute",
-    bottom: 58, // Sits right above standard tab bar height
-    left: 12,
-    right: 12,
-    zIndex: 999,
-  },
-  container: {
-    height: 56,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    overflow: "hidden",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 8,
-  },
   progressBarBackground: {
-    height: 2,
     width: "100%",
-    backgroundColor: "rgba(0,0,0,0.05)",
+    height: 2,
   },
   progressBarFill: {
     height: 2,
-  },
-  innerContent: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.sm,
-  },
-  artwork: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.sm,
-  },
-  textContainer: {
-    flex: 1,
-    marginLeft: 10,
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semibold,
-    letterSpacing: typography.letterSpacing.tight,
   },
   subtitleRow: {
     flexDirection: "row",
@@ -248,15 +213,54 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   pulsingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  syncDot: {
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    marginRight: 5,
+    marginRight: 6,
   },
-  artist: {
+  mobileDockContainer: {
+    position: "absolute",
+    bottom: 56,
+    left: 12,
+    right: 12,
+    zIndex: 999,
+  },
+  mobileDockCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+  },
+  mobileDockThumb: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+  },
+  mobileDockInfo: {
+    flex: 1,
+    marginLeft: 10,
+    marginRight: 8,
+  },
+  mobileDockTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  mobileDockArtist: {
     fontSize: 11,
+    marginTop: 2,
   },
-  actionsContainer: {
+  mobileDockActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -278,9 +282,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 74,
-    backgroundColor: "rgba(255, 255, 255, 0.88)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(0, 0, 0, 0.08)",
     zIndex: 9999,
   },
   desktopContent: {
@@ -307,11 +309,9 @@ const styles = StyleSheet.create({
   desktopTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#0A0A0A",
   },
   desktopArtist: {
     fontSize: 12,
-    color: "#52525B",
     marginTop: 2,
   },
   desktopCenterControls: {
@@ -343,19 +343,16 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 11,
-    color: "#71717A",
     minWidth: 32,
   },
   desktopScrubTrack: {
     flex: 1,
     height: 4,
-    backgroundColor: "rgba(0, 0, 0, 0.08)",
     borderRadius: 2,
     overflow: "hidden",
   },
   desktopScrubFill: {
     height: "100%",
-    backgroundColor: "#0A0A0A",
     borderRadius: 2,
   },
   desktopRightTools: {
@@ -368,8 +365,6 @@ const styles = StyleSheet.create({
   syncBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.04)",
-    borderColor: "rgba(0, 0, 0, 0.08)",
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -378,12 +373,10 @@ const styles = StyleSheet.create({
   syncBadgeText: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#0A0A0A",
   },
   expandRoomBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0A0A0A",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -391,6 +384,5 @@ const styles = StyleSheet.create({
   expandRoomText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#FFFFFF",
   },
 });

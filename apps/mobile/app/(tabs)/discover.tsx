@@ -19,14 +19,16 @@ import {
   Users,
   Music2,
 } from "lucide-react-native";
-import { typography, colors, spacing, radii } from "../../src/theme/tokens";
+import { typography, spacing, radii } from "../../src/theme/tokens";
 import { CreateRoomModal } from "../../src/components/room/CreateRoomModal";
 import { MusicSearchModal } from "../../src/components/music/MusicSearchModal";
 import { usePlaybackStore } from "../../src/store/playbackStore";
+import { useThemeStore } from "../../src/store/themeStore";
+import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const palette = colors.light;
+  const { palette, isDark } = useThemeStore();
   const { playTrackImmediate } = usePlaybackStore();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -78,13 +80,16 @@ export default function DiscoverScreen() {
             <Text style={[styles.eyebrow, { color: palette.textTertiary }]}>· explore</Text>
             <Text style={[styles.mainTitle, { color: palette.textPrimary }]}>Discover Rooms</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.createBtn, { backgroundColor: palette.textPrimary }]}
-            onPress={() => setShowCreateModal(true)}
-          >
-            <Plus size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
-            <Text style={styles.createBtnText}>New Room</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <ThemeToggleButton />
+            <TouchableOpacity
+              style={[styles.createBtn, { backgroundColor: palette.accent }]}
+              onPress={() => setShowCreateModal(true)}
+            >
+              <Plus size={16} color={palette.accentInverted} style={{ marginRight: 4 }} />
+              <Text style={[styles.createBtnText, { color: palette.accentInverted }]}>New Room</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search Bar */}
@@ -204,6 +209,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: spacing.sm,
     marginBottom: spacing.md,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   eyebrow: {
     fontSize: typography.sizes.xs,

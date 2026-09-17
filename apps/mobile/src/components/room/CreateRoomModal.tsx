@@ -13,9 +13,10 @@ import {
 import { useRouter } from "expo-router";
 import { X, Globe, Users, Lock, Sparkles, Music, ChevronRight } from "lucide-react-native";
 import { RoomType, TrackMetadata } from "@sony/types";
-import { typography, colors, spacing, radii } from "../../theme/tokens";
+import { typography, spacing, radii } from "../../theme/tokens";
 import { usePlaybackStore } from "../../store/playbackStore";
 import { useRoomStore } from "../../store/roomStore";
+import { useThemeStore } from "../../store/themeStore";
 import { CATALOG_TRACKS, MusicSearchModal } from "../music/MusicSearchModal";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -28,7 +29,7 @@ interface CreateRoomModalProps {
 
 export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModalProps) {
   const router = useRouter();
-  const palette = colors.light;
+  const { palette, isDark } = useThemeStore();
 
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
@@ -143,17 +144,17 @@ export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModal
                   style={[
                     styles.privacyCard,
                     {
-                      backgroundColor: privacy === "PUBLIC" ? palette.textPrimary : palette.surface,
-                      borderColor: privacy === "PUBLIC" ? palette.textPrimary : palette.borderSubtle,
+                      backgroundColor: privacy === "PUBLIC" ? palette.accent : palette.surface,
+                      borderColor: privacy === "PUBLIC" ? palette.accent : palette.borderSubtle,
                     },
                   ]}
                   onPress={() => setPrivacy("PUBLIC")}
                 >
-                  <Globe size={18} color={privacy === "PUBLIC" ? "#FFFFFF" : palette.textPrimary} />
+                  <Globe size={18} color={privacy === "PUBLIC" ? palette.accentInverted : palette.textPrimary} />
                   <Text
                     style={[
                       styles.privacyTitle,
-                      { color: privacy === "PUBLIC" ? "#FFFFFF" : palette.textPrimary },
+                      { color: privacy === "PUBLIC" ? palette.accentInverted : palette.textPrimary },
                     ]}
                   >
                     Public
@@ -161,7 +162,7 @@ export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModal
                   <Text
                     style={[
                       styles.privacySubtitle,
-                      { color: privacy === "PUBLIC" ? "rgba(255,255,255,0.7)" : palette.textTertiary },
+                      { color: privacy === "PUBLIC" ? (isDark ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)") : palette.textTertiary },
                     ]}
                   >
                     Anyone can join
@@ -172,17 +173,17 @@ export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModal
                   style={[
                     styles.privacyCard,
                     {
-                      backgroundColor: privacy === "PRIVATE" ? palette.textPrimary : palette.surface,
-                      borderColor: privacy === "PRIVATE" ? palette.textPrimary : palette.borderSubtle,
+                      backgroundColor: privacy === "PRIVATE" ? palette.accent : palette.surface,
+                      borderColor: privacy === "PRIVATE" ? palette.accent : palette.borderSubtle,
                     },
                   ]}
                   onPress={() => setPrivacy("PRIVATE")}
                 >
-                  <Lock size={18} color={privacy === "PRIVATE" ? "#FFFFFF" : palette.textPrimary} />
+                  <Lock size={18} color={privacy === "PRIVATE" ? palette.accentInverted : palette.textPrimary} />
                   <Text
                     style={[
                       styles.privacyTitle,
-                      { color: privacy === "PRIVATE" ? "#FFFFFF" : palette.textPrimary },
+                      { color: privacy === "PRIVATE" ? palette.accentInverted : palette.textPrimary },
                     ]}
                   >
                     Private
@@ -190,7 +191,7 @@ export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModal
                   <Text
                     style={[
                       styles.privacySubtitle,
-                      { color: privacy === "PRIVATE" ? "rgba(255,255,255,0.7)" : palette.textTertiary },
+                      { color: privacy === "PRIVATE" ? (isDark ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)") : palette.textTertiary },
                     ]}
                   >
                     Invite code only
@@ -234,8 +235,8 @@ export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModal
                       style={[
                         styles.capacityPill,
                         {
-                          backgroundColor: isSelected ? palette.textPrimary : palette.surface,
-                          borderColor: isSelected ? palette.textPrimary : palette.borderSubtle,
+                          backgroundColor: isSelected ? palette.accent : palette.surface,
+                          borderColor: isSelected ? palette.accent : palette.borderSubtle,
                         },
                       ]}
                       onPress={() => setMaxParticipants(cap)}
@@ -243,7 +244,7 @@ export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModal
                       <Text
                         style={[
                           styles.capacityText,
-                          { color: isSelected ? "#FFFFFF" : palette.textPrimary },
+                          { color: isSelected ? palette.accentInverted : palette.textPrimary },
                         ]}
                       >
                         {cap} seats
@@ -257,11 +258,11 @@ export function CreateRoomModal({ visible, onClose, onCreated }: CreateRoomModal
             {/* Submit Action Button */}
             <TouchableOpacity
               activeOpacity={0.85}
-              style={[styles.createBtn, { backgroundColor: palette.textPrimary }]}
+              style={[styles.createBtn, { backgroundColor: palette.accent }]}
               onPress={handleCreate}
             >
-              <Sparkles size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.createBtnText}>Create & Enter Room</Text>
+              <Sparkles size={18} color={palette.accentInverted} style={{ marginRight: 8 }} />
+              <Text style={[styles.createBtnText, { color: palette.accentInverted }]}>Create & Enter Room</Text>
             </TouchableOpacity>
           </ScrollView>
 

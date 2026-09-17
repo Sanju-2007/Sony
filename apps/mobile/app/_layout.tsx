@@ -4,20 +4,21 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, Platform, View } from 'react-native';
 import { BackgroundParticles } from '../src/components/particles/BackgroundParticles';
-import { colors } from '../src/theme/tokens';
 import { usePlaybackStore } from '../src/store/playbackStore';
+import { useThemeStore } from '../src/store/themeStore';
 
 export default function RootLayout() {
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
   const isVoiceActive = usePlaybackStore((s) => s.isVoiceActive);
+  const { isDark, palette } = useThemeStore();
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <StatusBar style="dark" />
+    <GestureHandlerRootView style={[styles.container, { backgroundColor: palette.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       {Platform.OS !== 'web' && (
-        <BackgroundParticles isDark={false} isPlaying={isPlaying} isVoiceActive={isVoiceActive} />
+        <BackgroundParticles isDark={isDark} isPlaying={isPlaying} isVoiceActive={isVoiceActive} />
       )}
-      <View style={styles.appShell}>
+      <View style={[styles.appShell, { backgroundColor: palette.background }]}>
         <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -38,7 +39,6 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     width: '100%',
     height: '100%',
   },
@@ -46,6 +46,5 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: '#FFFFFF',
   },
 });

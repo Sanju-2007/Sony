@@ -32,10 +32,14 @@ import {
   Play,
   MessageSquare,
   Search,
+  Sun,
+  Moon,
 } from "lucide-react-native";
-import { typography, colors, spacing, radii } from "../../src/theme/tokens";
+import { typography, spacing, radii } from "../../src/theme/tokens";
 import { useAuthStore } from "../../src/store/authStore";
 import { usePlaybackStore, DUCKING_PROFILES, DuckingProfileType } from "../../src/store/playbackStore";
+import { useThemeStore } from "../../src/store/themeStore";
+import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
 type ProfileTab = "SETTINGS" | "FRIENDS" | "REQUESTS" | "FIND";
 type PrivacyMode = "PUBLIC" | "FRIENDS" | "GHOST";
@@ -63,7 +67,7 @@ interface FriendRequestItem {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const palette = colors.light;
+  const { isDark, palette, toggleTheme } = useThemeStore();
   const { user, logout } = useAuthStore();
   const { duckingProfile, setDuckingProfile, playTrackImmediate } = usePlaybackStore();
 
@@ -202,15 +206,18 @@ export default function ProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.eyebrow, { color: palette.textTertiary }]}>· my account & circle</Text>
-          <Text style={[styles.mainTitle, { color: palette.textPrimary }]}>Profile</Text>
+        <View style={[styles.header, { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }]}>
+          <View>
+            <Text style={[styles.eyebrow, { color: palette.textTertiary }]}>· my account & circle</Text>
+            <Text style={[styles.mainTitle, { color: palette.textPrimary }]}>Profile</Text>
+          </View>
+          <ThemeToggleButton showLabel />
         </View>
 
         {/* Profile Card */}
         <View style={[styles.profileCard, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
           <View style={[styles.avatarCircle, { backgroundColor: palette.accent }]}>
-            <Text style={styles.avatarText}>{displayName.charAt(0) || "A"}</Text>
+            <Text style={[styles.avatarText, { color: palette.accentInverted }]}>{displayName.charAt(0) || "A"}</Text>
           </View>
           <Text style={[styles.name, { color: palette.textPrimary }]}>{displayName}</Text>
           <Text style={[styles.handle, { color: palette.textTertiary }]}>@{user?.username || "alex"}</Text>
@@ -236,43 +243,43 @@ export default function ProfileScreen() {
         </View>
 
         {/* Segmented Navigation */}
-        <View style={styles.segmentContainer}>
+        <View style={[styles.segmentContainer, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)" }]}>
           <TouchableOpacity
-            style={[styles.segmentBtn, activeTab === "SETTINGS" && styles.segmentBtnActive]}
+            style={[styles.segmentBtn, activeTab === "SETTINGS" && [styles.segmentBtnActive, { backgroundColor: palette.accent }]]}
             onPress={() => setActiveTab("SETTINGS")}
           >
-            <Sliders size={14} color={activeTab === "SETTINGS" ? "#FFFFFF" : "#71717A"} style={{ marginRight: 6 }} />
-            <Text style={[styles.segmentText, activeTab === "SETTINGS" && styles.segmentTextActive]}>
+            <Sliders size={14} color={activeTab === "SETTINGS" ? palette.accentInverted : palette.textTertiary} style={{ marginRight: 6 }} />
+            <Text style={[styles.segmentText, { color: activeTab === "SETTINGS" ? palette.accentInverted : palette.textTertiary }]}>
               Settings & Audio
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.segmentBtn, activeTab === "FRIENDS" && styles.segmentBtnActive]}
+            style={[styles.segmentBtn, activeTab === "FRIENDS" && [styles.segmentBtnActive, { backgroundColor: palette.accent }]]}
             onPress={() => setActiveTab("FRIENDS")}
           >
-            <Users size={14} color={activeTab === "FRIENDS" ? "#FFFFFF" : "#71717A"} style={{ marginRight: 6 }} />
-            <Text style={[styles.segmentText, activeTab === "FRIENDS" && styles.segmentTextActive]}>
+            <Users size={14} color={activeTab === "FRIENDS" ? palette.accentInverted : palette.textTertiary} style={{ marginRight: 6 }} />
+            <Text style={[styles.segmentText, { color: activeTab === "FRIENDS" ? palette.accentInverted : palette.textTertiary }]}>
               Friends ({friendsList.length})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.segmentBtn, activeTab === "REQUESTS" && styles.segmentBtnActive]}
+            style={[styles.segmentBtn, activeTab === "REQUESTS" && [styles.segmentBtnActive, { backgroundColor: palette.accent }]]}
             onPress={() => setActiveTab("REQUESTS")}
           >
-            <UserPlus size={14} color={activeTab === "REQUESTS" ? "#FFFFFF" : "#71717A"} style={{ marginRight: 6 }} />
-            <Text style={[styles.segmentText, activeTab === "REQUESTS" && styles.segmentTextActive]}>
+            <UserPlus size={14} color={activeTab === "REQUESTS" ? palette.accentInverted : palette.textTertiary} style={{ marginRight: 6 }} />
+            <Text style={[styles.segmentText, { color: activeTab === "REQUESTS" ? palette.accentInverted : palette.textTertiary }]}>
               Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.segmentBtn, activeTab === "FIND" && styles.segmentBtnActive]}
+            style={[styles.segmentBtn, activeTab === "FIND" && [styles.segmentBtnActive, { backgroundColor: palette.accent }]]}
             onPress={() => setActiveTab("FIND")}
           >
-            <Search size={14} color={activeTab === "FIND" ? "#FFFFFF" : "#71717A"} style={{ marginRight: 6 }} />
-            <Text style={[styles.segmentText, activeTab === "FIND" && styles.segmentTextActive]}>
+            <Search size={14} color={activeTab === "FIND" ? palette.accentInverted : palette.textTertiary} style={{ marginRight: 6 }} />
+            <Text style={[styles.segmentText, { color: activeTab === "FIND" ? palette.accentInverted : palette.textTertiary }]}>
               Add Friends
             </Text>
           </TouchableOpacity>
@@ -301,6 +308,31 @@ export default function ProfileScreen() {
             </View>
 
             {/* Playback & Sync Engine Preferences */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Appearance & Theme</Text>
+
+              <View style={[styles.menuItem, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
+                <View style={styles.menuLeft}>
+                  {isDark ? (
+                    <Moon size={16} color={palette.speaking} style={{ marginRight: 10 }} />
+                  ) : (
+                    <Sun size={16} color="#F59E0B" style={{ marginRight: 10 }} />
+                  )}
+                  <View>
+                    <Text style={[styles.menuText, { color: palette.textPrimary }]}>Dark Mode</Text>
+                    <Text style={[styles.menuSubtext, { color: palette.textTertiary }]}>
+                      {isDark ? "Deep obsidian canvas & luminous highlights" : "Crisp white canvas & clean typography"}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={isDark}
+                  onValueChange={toggleTheme}
+                  trackColor={{ true: palette.speaking, false: palette.border }}
+                />
+              </View>
+            </View>
+
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Audio Engine Preferences</Text>
 
@@ -349,8 +381,8 @@ export default function ProfileScreen() {
                         style={[
                           styles.duckingOptionPill,
                           {
-                            backgroundColor: isSelected ? palette.textPrimary : palette.background,
-                            borderColor: isSelected ? palette.textPrimary : palette.border,
+                            backgroundColor: isSelected ? palette.accent : palette.background,
+                            borderColor: isSelected ? palette.accent : palette.border,
                           },
                         ]}
                         onPress={() => setDuckingProfile(prof)}
@@ -358,7 +390,7 @@ export default function ProfileScreen() {
                         <Text
                           style={[
                             styles.duckingOptionText,
-                            { color: isSelected ? "#FFFFFF" : palette.textSecondary },
+                            { color: isSelected ? palette.accentInverted : palette.textSecondary },
                           ]}
                         >
                           {prof === "SING_TOGETHER" ? "Sing (40%)" : prof === "PODCAST_DJ" ? "DJ (20%)" : prof === "SUBTLE" ? "Subtle (65%)" : "Off"}
@@ -388,17 +420,17 @@ export default function ProfileScreen() {
                       style={[
                         styles.privacyModeCard,
                         {
-                          backgroundColor: isSelected ? palette.textPrimary : palette.surface,
-                          borderColor: isSelected ? palette.textPrimary : palette.borderSubtle,
+                          backgroundColor: isSelected ? palette.accent : palette.surface,
+                          borderColor: isSelected ? palette.accent : palette.borderSubtle,
                         },
                       ]}
                       onPress={() => setPrivacyMode(p.id as PrivacyMode)}
                     >
-                      <IconComp size={16} color={isSelected ? "#FFFFFF" : palette.textPrimary} />
+                      <IconComp size={16} color={isSelected ? palette.accentInverted : palette.textPrimary} />
                       <Text
                         style={[
                           styles.privacyModeTitle,
-                          { color: isSelected ? "#FFFFFF" : palette.textPrimary },
+                          { color: isSelected ? palette.accentInverted : palette.textPrimary },
                         ]}
                       >
                         {p.label}
@@ -406,7 +438,7 @@ export default function ProfileScreen() {
                       <Text
                         style={[
                           styles.privacyModeDesc,
-                          { color: isSelected ? "rgba(255,255,255,0.7)" : palette.textTertiary },
+                          { color: isSelected ? (isDark ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)") : palette.textTertiary },
                         ]}
                       >
                         {p.desc}
@@ -426,24 +458,30 @@ export default function ProfileScreen() {
               <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
                 My Friends ({friendsList.length})
               </Text>
-              <Text style={styles.sectionSub}>Live listening status across active rooms</Text>
+              <Text style={[styles.sectionSub, { color: palette.textTertiary }]}>Live listening status across active rooms</Text>
             </View>
 
             <View style={styles.friendsList}>
               {friendsList.map((friend) => (
-                <View key={friend.id} style={styles.friendCard}>
+                <View
+                  key={friend.id}
+                  style={[
+                    styles.friendCard,
+                    { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                  ]}
+                >
                   <Image source={{ uri: friend.avatar }} style={styles.friendAvatar} />
                   <View style={styles.friendInfo}>
                     <View style={styles.friendNameRow}>
-                      <Text style={styles.friendName}>{friend.name}</Text>
-                      <Text style={styles.friendHandle}>{friend.handle}</Text>
+                      <Text style={[styles.friendName, { color: palette.textPrimary }]}>{friend.name}</Text>
+                      <Text style={[styles.friendHandle, { color: palette.textTertiary }]}>{friend.handle}</Text>
                     </View>
 
                     {friend.status === "IN_ROOM" && (
                       <View style={styles.friendActivityRow}>
                         <View style={[styles.statusDot, { backgroundColor: "#10B981" }]} />
-                        <Text style={styles.friendActivityText} numberOfLines={1}>
-                          In <Text style={{ fontWeight: "700" }}>{friend.roomName}</Text> · {friend.currentTrack}
+                        <Text style={[styles.friendActivityText, { color: palette.textSecondary }]} numberOfLines={1}>
+                          In <Text style={{ fontWeight: "700", color: palette.textPrimary }}>{friend.roomName}</Text> · {friend.currentTrack}
                         </Text>
                       </View>
                     )}
@@ -451,7 +489,7 @@ export default function ProfileScreen() {
                     {friend.status === "ONLINE" && (
                       <View style={styles.friendActivityRow}>
                         <View style={[styles.statusDot, { backgroundColor: "#3B82F6" }]} />
-                        <Text style={styles.friendActivityText} numberOfLines={1}>
+                        <Text style={[styles.friendActivityText, { color: palette.textSecondary }]} numberOfLines={1}>
                           Listening to {friend.currentTrack}
                         </Text>
                       </View>
@@ -459,8 +497,8 @@ export default function ProfileScreen() {
 
                     {friend.status === "OFFLINE" && (
                       <View style={styles.friendActivityRow}>
-                        <View style={[styles.statusDot, { backgroundColor: "#A1A1AA" }]} />
-                        <Text style={styles.friendActivityTextOffline}>Offline</Text>
+                        <View style={[styles.statusDot, { backgroundColor: palette.textTertiary }]} />
+                        <Text style={[styles.friendActivityTextOffline, { color: palette.textTertiary }]}>Offline</Text>
                       </View>
                     )}
                   </View>
@@ -469,20 +507,20 @@ export default function ProfileScreen() {
                     {friend.status !== "OFFLINE" && (
                       <TouchableOpacity
                         activeOpacity={0.8}
-                        style={styles.listenWithBtn}
+                        style={[styles.listenWithBtn, { backgroundColor: palette.accent }]}
                         onPress={() => handleListenWithFriend(friend)}
                       >
-                        <Play size={13} color="#FFFFFF" fill="#FFFFFF" style={{ marginRight: 4 }} />
-                        <Text style={styles.listenWithBtnText}>Listen</Text>
+                        <Play size={13} color={palette.accentInverted} fill={palette.accentInverted} style={{ marginRight: 4 }} />
+                        <Text style={[styles.listenWithBtnText, { color: palette.accentInverted }]}>Listen</Text>
                       </TouchableOpacity>
                     )}
 
                     <TouchableOpacity
                       activeOpacity={0.8}
-                      style={styles.chatFriendBtn}
+                      style={[styles.chatFriendBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
                       onPress={() => router.push("/(tabs)/messages")}
                     >
-                      <MessageSquare size={14} color="#0A0A0A" />
+                      <MessageSquare size={14} color={palette.textPrimary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -498,49 +536,55 @@ export default function ProfileScreen() {
               <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
                 Pending Requests ({pendingRequests.length})
               </Text>
-              <Text style={styles.sectionSub}>Accept to share synchronized rooms and spatial voice</Text>
+              <Text style={[styles.sectionSub, { color: palette.textTertiary }]}>Accept to share synchronized rooms and spatial voice</Text>
             </View>
 
             {pendingRequests.length === 0 ? (
-              <View style={styles.emptyCard}>
+              <View style={[styles.emptyCard, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
                 <UserCheck size={36} color="#10B981" style={{ marginBottom: 10 }} />
-                <Text style={styles.emptyTitle}>You're all caught up!</Text>
-                <Text style={styles.emptySub}>No pending friend requests at this time.</Text>
+                <Text style={[styles.emptyTitle, { color: palette.textPrimary }]}>You're all caught up!</Text>
+                <Text style={[styles.emptySub, { color: palette.textTertiary }]}>No pending friend requests at this time.</Text>
               </View>
             ) : (
               <View style={styles.requestsList}>
                 {pendingRequests.map((req) => (
-                  <View key={req.id} style={styles.requestCard}>
+                  <View
+                    key={req.id}
+                    style={[
+                      styles.requestCard,
+                      { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                    ]}
+                  >
                     <Image source={{ uri: req.avatar }} style={styles.friendAvatar} />
                     <View style={styles.requestInfo}>
                       <View style={styles.friendNameRow}>
-                        <Text style={styles.friendName}>{req.name}</Text>
-                        <Text style={styles.friendHandle}>{req.handle}</Text>
+                        <Text style={[styles.friendName, { color: palette.textPrimary }]}>{req.name}</Text>
+                        <Text style={[styles.friendHandle, { color: palette.textTertiary }]}>{req.handle}</Text>
                       </View>
-                      <Text style={styles.mutualText}>
+                      <Text style={[styles.mutualText, { color: palette.textTertiary }]}>
                         {req.mutualCount} mutual listening friends
                       </Text>
                       {req.message && (
-                        <Text style={styles.requestMessage}>"{req.message}"</Text>
+                        <Text style={[styles.requestMessage, { color: palette.textSecondary }]}>"{req.message}"</Text>
                       )}
                     </View>
 
                     <View style={styles.requestActions}>
                       <TouchableOpacity
                         activeOpacity={0.8}
-                        style={styles.acceptBtn}
+                        style={[styles.acceptBtn, { backgroundColor: palette.accent }]}
                         onPress={() => handleAcceptRequest(req)}
                       >
-                        <Check size={14} color="#FFFFFF" strokeWidth={2.4} style={{ marginRight: 4 }} />
-                        <Text style={styles.acceptBtnText}>Accept</Text>
+                        <Check size={14} color={palette.accentInverted} strokeWidth={2.4} style={{ marginRight: 4 }} />
+                        <Text style={[styles.acceptBtnText, { color: palette.accentInverted }]}>Accept</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         activeOpacity={0.8}
-                        style={styles.declineBtn}
+                        style={[styles.declineBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
                         onPress={() => handleDeclineRequest(req.id)}
                       >
-                        <X size={14} color="#71717A" />
+                        <X size={14} color={palette.textSecondary} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -557,17 +601,17 @@ export default function ProfileScreen() {
               <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
                 Discover Audiophiles
               </Text>
-              <Text style={styles.sectionSub}>Search users or add mutual friends across rooms</Text>
+              <Text style={[styles.sectionSub, { color: palette.textTertiary }]}>Search users or add mutual friends across rooms</Text>
             </View>
 
-            <View style={styles.searchBar}>
-              <Search size={16} color="#71717A" style={{ marginRight: 10 }} />
+            <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <Search size={16} color={palette.textTertiary} style={{ marginRight: 10 }} />
               <TextInput
                 value={searchFriendQuery}
                 onChangeText={setSearchFriendQuery}
                 placeholder="Search username, handle, or music taste..."
-                placeholderTextColor="#A1A1AA"
-                style={styles.searchInput}
+                placeholderTextColor={palette.textTertiary}
+                style={[styles.searchInput, { color: palette.textPrimary }]}
               />
             </View>
 
@@ -597,18 +641,26 @@ export default function ProfileScreen() {
               ].map((sug) => {
                 const isSent = !!sentRequestIds[sug.id];
                 return (
-                  <View key={sug.id} style={styles.suggestionCard}>
+                  <View
+                    key={sug.id}
+                    style={[
+                      styles.suggestionCard,
+                      { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                    ]}
+                  >
                     <Image source={{ uri: sug.avatar }} style={styles.friendAvatar} />
                     <View style={styles.friendInfo}>
-                      <Text style={styles.friendName}>{sug.name}</Text>
-                      <Text style={styles.friendHandle}>{sug.handle} · {sug.genre}</Text>
+                      <Text style={[styles.friendName, { color: palette.textPrimary }]}>{sug.name}</Text>
+                      <Text style={[styles.friendHandle, { color: palette.textTertiary }]}>{sug.handle} · {sug.genre}</Text>
                     </View>
 
                     <TouchableOpacity
                       activeOpacity={0.8}
                       style={[
                         styles.addFriendBtn,
-                        isSent && { backgroundColor: "rgba(16, 185, 129, 0.12)", borderColor: "#10B981" },
+                        isSent
+                          ? { backgroundColor: "rgba(16, 185, 129, 0.12)", borderColor: "#10B981" }
+                          : { backgroundColor: palette.accent, borderColor: palette.accent },
                       ]}
                       onPress={() => handleSendFriendRequest(sug.id)}
                       disabled={isSent}
@@ -620,8 +672,8 @@ export default function ProfileScreen() {
                         </>
                       ) : (
                         <>
-                          <UserPlus size={13} color="#0A0A0A" style={{ marginRight: 4 }} />
-                          <Text style={styles.addFriendText}>Add</Text>
+                          <UserPlus size={13} color={palette.accentInverted} style={{ marginRight: 4 }} />
+                          <Text style={[styles.addFriendText, { color: palette.accentInverted }]}>Add</Text>
                         </>
                       )}
                     </TouchableOpacity>
@@ -682,7 +734,7 @@ export default function ProfileScreen() {
               style={[styles.modalSaveBtn, { backgroundColor: palette.accent }]}
               onPress={() => setShowEditModal(false)}
             >
-              <Text style={styles.modalSaveText}>Save Changes</Text>
+              <Text style={[styles.modalSaveText, { color: palette.accentInverted }]}>Save Changes</Text>
             </TouchableOpacity>
           </View>
         </View>

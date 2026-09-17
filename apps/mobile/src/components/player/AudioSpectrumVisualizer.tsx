@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
-import { colors, radii } from "../../theme/tokens";
+import { radii } from "../../theme/tokens";
+import { useThemeStore } from "../../store/themeStore";
 import { DuckingState } from "@sony/types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -19,7 +20,7 @@ export function AudioSpectrumVisualizer({
   duckingState,
   isVoiceActive,
 }: AudioSpectrumVisualizerProps) {
-  const palette = colors.light;
+  const { palette } = useThemeStore();
   const [barHeights, setBarHeights] = useState<number[]>(
     Array.from({ length: NUM_BARS }, () => 4)
   );

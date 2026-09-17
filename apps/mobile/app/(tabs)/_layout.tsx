@@ -5,9 +5,11 @@ import { Disc, Compass, Users, MessageSquare, User, Radio, Plus, Sparkles } from
 import { colors, typography } from "../../src/theme/tokens";
 import { MiniPlayer } from "../../src/components/player/MiniPlayer";
 import { CreateRoomModal } from "../../src/components/room/CreateRoomModal";
+import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
+import { useThemeStore } from "../../src/store/themeStore";
 
 export default function TabLayout() {
-  const palette = colors.dark;
+  const { isDark, palette } = useThemeStore();
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
@@ -24,34 +26,42 @@ export default function TabLayout() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* DESKTOP SIDEBAR */}
       {isDesktop && (
-        <View style={styles.sidebar}>
+        <View
+          style={[
+            styles.sidebar,
+            {
+              backgroundColor: palette.surface,
+              borderRightColor: palette.border,
+            },
+          ]}
+        >
           {/* Brand */}
           <View style={styles.brandRow}>
-            <View style={styles.logoBadge}>
-              <Radio size={18} color="#FFFFFF" />
+            <View style={[styles.logoBadge, { backgroundColor: palette.accent }]}>
+              <Radio size={18} color={palette.accentInverted} />
             </View>
             <View>
-              <Text style={styles.brandTitle}>SONY MUSIC</Text>
-              <Text style={styles.brandSubtitle}>Social Listening</Text>
+              <Text style={[styles.brandTitle, { color: palette.textPrimary }]}>SONY MUSIC</Text>
+              <Text style={[styles.brandSubtitle, { color: palette.textTertiary }]}>Social Listening</Text>
             </View>
           </View>
 
           {/* Quick Create Room */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={styles.createBtn}
+            style={[styles.createBtn, { backgroundColor: palette.accent }]}
             onPress={() => setShowCreateModal(true)}
           >
-            <Plus size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.createBtnText}>Start Room</Text>
+            <Plus size={16} color={palette.accentInverted} style={{ marginRight: 8 }} />
+            <Text style={[styles.createBtnText, { color: palette.accentInverted }]}>Start Room</Text>
           </TouchableOpacity>
 
           {/* Navigation Links */}
           <View style={styles.navGroup}>
-            <Text style={styles.navHeader}>MENU</Text>
+            <Text style={[styles.navHeader, { color: palette.textTertiary }]}>MENU</Text>
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive =
@@ -65,18 +75,26 @@ export default function TabLayout() {
                   activeOpacity={0.75}
                   style={[
                     styles.navItem,
-                    isActive && styles.navItemActive,
+                    isActive && [
+                      styles.navItemActive,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(0, 0, 0, 0.06)",
+                      },
+                    ],
                   ]}
                   onPress={() => router.push(item.route as any)}
                 >
                   <Icon
                     size={18}
-                    color={isActive ? "#0A0A0A" : "#71717A"}
+                    color={isActive ? palette.textPrimary : palette.textTertiary}
                     strokeWidth={isActive ? 2.2 : 1.8}
                   />
                   <Text
                     style={[
                       styles.navLabel,
+                      { color: isActive ? palette.textPrimary : palette.textTertiary },
                       isActive && styles.navLabelActive,
                     ]}
                   >
@@ -87,11 +105,26 @@ export default function TabLayout() {
             })}
           </View>
 
-          {/* Bottom Audio Engine Status */}
-          <View style={styles.sidebarFooter}>
-            <View style={styles.engineBadge}>
-              <Sparkles size={13} color="#0A0A0A" style={{ marginRight: 6 }} />
-              <Text style={styles.engineText}>Ducking Engine Active</Text>
+          {/* Bottom Theme & Engine Status */}
+          <View style={[styles.sidebarFooter, { borderTopColor: palette.borderSubtle }]}>
+            <View style={{ marginBottom: 10 }}>
+              <ThemeToggleButton showLabel />
+            </View>
+
+            <View
+              style={[
+                styles.engineBadge,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.06)"
+                    : "rgba(0, 0, 0, 0.04)",
+                },
+              ]}
+            >
+              <Sparkles size={13} color={palette.textPrimary} style={{ marginRight: 6 }} />
+              <Text style={[styles.engineText, { color: palette.textPrimary }]}>
+                Ducking Engine Active
+              </Text>
             </View>
           </View>
         </View>
@@ -102,22 +135,12 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: "#0A0A0A",
-            tabBarInactiveTintColor: "#8E8E93",
+            tabBarActiveTintColor: palette.textPrimary,
+            tabBarInactiveTintColor: palette.textTertiary,
             tabBarStyle: {
               display: isDesktop ? "none" : "flex",
-              backgroundColor: "rgba(255, 255, 255, 0.85)",
-              borderTopColor: "rgba(0, 0, 0, 0.08)",
-              borderTopWidth: 1,
-              height: 64,
-              paddingBottom: 10,
-              paddingTop: 8,
-              elevation: 0,
-            },
-            tabBarLabelStyle: {
-              fontSize: typography.sizes.xs,
-              fontWeight: typography.weights.medium,
-              letterSpacing: typography.letterSpacing.tight,
+              backgroundColor: palette.surface,
+              borderTopColor: palette.border,
             },
           }}
         >
@@ -125,48 +148,48 @@ export default function TabLayout() {
             name="index"
             options={{
               title: "Home",
-              tabBarIcon: ({ color }) => <Disc size={20} color={color} strokeWidth={1.8} />,
+              tabBarIcon: ({ color, size }) => <Disc size={size} color={color} />,
             }}
           />
           <Tabs.Screen
             name="discover"
             options={{
               title: "Discover",
-              tabBarIcon: ({ color }) => <Compass size={20} color={color} strokeWidth={1.8} />,
+              tabBarIcon: ({ color, size }) => <Compass size={size} color={color} />,
             }}
           />
           <Tabs.Screen
             name="friends"
             options={{
               title: "Friends",
-              tabBarIcon: ({ color }) => <Users size={20} color={color} strokeWidth={1.8} />,
+              tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
             }}
           />
           <Tabs.Screen
             name="messages"
             options={{
               title: "Messages",
-              tabBarIcon: ({ color }) => <MessageSquare size={20} color={color} strokeWidth={1.8} />,
+              tabBarIcon: ({ color, size }) => <MessageSquare size={size} color={color} />,
             }}
           />
           <Tabs.Screen
             name="profile"
             options={{
               title: "Profile",
-              tabBarIcon: ({ color }) => <User size={20} color={color} strokeWidth={1.8} />,
+              tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
             }}
           />
         </Tabs>
+
+        {/* PERSISTENT MINI PLAYER BAR */}
+        <MiniPlayer />
       </View>
 
-      {/* Persistent Floating or Full-width Desktop MiniPlayer */}
-      <MiniPlayer isDesktop={isDesktop} />
-
-      {/* Modal for Quick Room Creation from Desktop Sidebar */}
+      {/* CREATE ROOM MODAL */}
       <CreateRoomModal
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreated={(id) => router.push("/room/" + id)}
+        onCreated={(id) => router.push(`/room/${id}`)}
       />
     </View>
   );
@@ -176,32 +199,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    position: "relative",
     width: "100%",
     height: "100%",
   },
   sidebar: {
-    width: 230,
-    backgroundColor: "rgba(255, 255, 255, 0.88)",
+    width: 240,
+    height: "100%",
     borderRightWidth: 1,
-    borderRightColor: "rgba(0, 0, 0, 0.08)",
-    paddingHorizontal: 16,
     paddingTop: 24,
-    paddingBottom: 84, // Clear bottom player
-    justifyContent: "space-between",
-    zIndex: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+    zIndex: 50,
   },
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 24,
+    paddingHorizontal: 8,
   },
   logoBadge: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "#0A0A0A",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -210,17 +229,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     letterSpacing: 1.2,
-    color: "#0A0A0A",
   },
   brandSubtitle: {
     fontSize: 11,
-    color: "#71717A",
   },
   createBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0A0A0A",
     paddingVertical: 10,
     borderRadius: 10,
     marginBottom: 24,
@@ -232,7 +248,6 @@ const styles = StyleSheet.create({
   createBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   navGroup: {
     flex: 1,
@@ -242,7 +257,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1,
-    color: "#A1A1AA",
     marginBottom: 8,
     paddingHorizontal: 8,
   },
@@ -254,34 +268,27 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 12,
   },
-  navItemActive: {
-    backgroundColor: "rgba(0, 0, 0, 0.06)",
-  },
+  navItemActive: {},
   navLabel: {
     fontSize: 13,
     fontWeight: "500",
-    color: "#71717A",
   },
   navLabelActive: {
-    color: "#0A0A0A",
     fontWeight: "700",
   },
   sidebarFooter: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0, 0, 0, 0.06)",
   },
   engineBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.04)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
   engineText: {
     fontSize: 11,
-    color: "#0A0A0A",
     fontWeight: "600",
   },
   mainContent: {

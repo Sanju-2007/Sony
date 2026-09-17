@@ -14,6 +14,7 @@ import {
 import { Search, X, Play, Plus, Check, Music2, Globe, Sparkles } from "lucide-react-native";
 import { TrackMetadata } from "@sony/types";
 import { typography, colors, spacing, radii } from "../../theme/tokens";
+import { useThemeStore } from "../../store/themeStore";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -198,7 +199,7 @@ export function MusicSearchModal({
   onSelectTrack,
   onAddToQueue,
 }: MusicSearchModalProps) {
-  const palette = colors.light;
+  const { palette, isDark } = useThemeStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string>("All");
   const [addedTrackIds, setAddedTrackIds] = useState<Record<string, boolean>>({});
@@ -314,7 +315,7 @@ export function MusicSearchModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: palette.surface }]}>
           {/* Header */}
           <View style={styles.modalHeader}>
             <View>
@@ -322,29 +323,32 @@ export function MusicSearchModal({
                 <Globe size={13} color="#059669" style={{ marginRight: 5 }} />
                 <Text style={styles.badgeText}>GLOBAL MUSIC SEARCH (MILLIONS OF SONGS)</Text>
               </View>
-              <Text style={styles.modalTitle}>Search & Queue Songs</Text>
+              <Text style={[styles.modalTitle, { color: palette.textPrimary }]}>Search & Queue Songs</Text>
             </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <X size={18} color="#0A0A0A" />
+            <TouchableOpacity
+              style={[styles.closeBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
+              onPress={onClose}
+            >
+              <X size={18} color={palette.textPrimary} />
             </TouchableOpacity>
           </View>
 
           {/* Search Box */}
-          <View style={styles.searchBox}>
-            <Search size={18} color="#71717A" style={{ marginRight: 10 }} />
+          <View style={[styles.searchBox, { backgroundColor: palette.background, borderColor: palette.border }]}>
+            <Search size={18} color={palette.textTertiary} style={{ marginRight: 10 }} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search any artist, song, or album (e.g. Taylor Swift, Drake, Coldplay)..."
-              placeholderTextColor="#A1A1AA"
-              style={styles.searchInput}
+              placeholderTextColor={palette.textTertiary}
+              style={[styles.searchInput, { color: palette.textPrimary }]}
               autoFocus
             />
             {isLoading ? (
-              <ActivityIndicator size="small" color="#0A0A0A" />
+              <ActivityIndicator size="small" color={palette.textPrimary} />
             ) : searchQuery.length > 0 ? (
               <TouchableOpacity onPress={() => setSearchQuery("")}>
-                <X size={16} color="#71717A" />
+                <X size={16} color={palette.textTertiary} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -364,8 +368,8 @@ export function MusicSearchModal({
                     style={[
                       styles.genrePill,
                       {
-                        backgroundColor: isSelected ? "#0A0A0A" : "rgba(0, 0, 0, 0.04)",
-                        borderColor: isSelected ? "#0A0A0A" : "rgba(0, 0, 0, 0.08)",
+                        backgroundColor: isSelected ? palette.accent : palette.background,
+                        borderColor: isSelected ? palette.accent : palette.border,
                       },
                     ]}
                     onPress={() => setSelectedGenre(genre)}
@@ -373,7 +377,7 @@ export function MusicSearchModal({
                     <Text
                       style={[
                         styles.genreText,
-                        { color: isSelected ? "#FFFFFF" : "#52525B" },
+                        { color: isSelected ? palette.accentInverted : palette.textSecondary },
                       ]}
                     >
                       {genre}
@@ -388,9 +392,9 @@ export function MusicSearchModal({
           <ScrollView contentContainerStyle={styles.tracksList} showsVerticalScrollIndicator={false}>
             {displayTracks.length === 0 && !isLoading ? (
               <View style={styles.emptyContainer}>
-                <Music2 size={36} color="#A1A1AA" style={{ marginBottom: 12 }} />
-                <Text style={styles.emptyTitle}>No tracks found</Text>
-                <Text style={styles.emptySubtitle}>
+                <Music2 size={36} color={palette.textTertiary} style={{ marginBottom: 12 }} />
+                <Text style={[styles.emptyTitle, { color: palette.textPrimary }]}>No tracks found</Text>
+                <Text style={[styles.emptySubtitle, { color: palette.textTertiary }]}>
                   Try searching for another song, artist, or band name.
                 </Text>
               </View>
@@ -398,7 +402,13 @@ export function MusicSearchModal({
               displayTracks.map((track) => {
                 const isAdded = !!addedTrackIds[track.id];
                 return (
-                  <View key={track.id} style={styles.trackCard}>
+                  <View
+                    key={track.id}
+                    style={[
+                      styles.trackCard,
+                      { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                    ]}
+                  >
                     <Image
                       source={{
                         uri:
@@ -408,14 +418,19 @@ export function MusicSearchModal({
                       style={styles.trackArtwork}
                     />
                     <View style={styles.trackInfo}>
-                      <Text style={styles.trackTitle} numberOfLines={1}>
+                      <Text style={[styles.trackTitle, { color: palette.textPrimary }]} numberOfLines={1}>
                         {track.title}
                       </Text>
-                      <Text style={styles.trackArtist} numberOfLines={1}>
+                      <Text style={[styles.trackArtist, { color: palette.textSecondary }]} numberOfLines={1}>
                         {track.artist} · {track.album}
                       </Text>
                       <View style={styles.trackMeta}>
-                        <Text style={styles.metaBadge}>
+                        <Text
+                          style={[
+                            styles.metaBadge,
+                            { backgroundColor: palette.background, color: palette.textTertiary },
+                          ]}
+                        >
                           {track.provider === "APPLE_MUSIC"
                             ? "Hi-Res Preview"
                             : track.provider === "SPOTIFY"
@@ -429,25 +444,28 @@ export function MusicSearchModal({
                     <View style={styles.trackActions}>
                       <TouchableOpacity
                         activeOpacity={0.8}
-                        style={styles.playBtn}
+                        style={[styles.playBtn, { backgroundColor: palette.accent }]}
                         onPress={() => handlePlayNow(track)}
                       >
-                        <Play size={14} color="#FFFFFF" fill="#FFFFFF" />
-                        <Text style={styles.playBtnText}>Play</Text>
+                        <Play size={14} color={palette.accentInverted} fill={palette.accentInverted} />
+                        <Text style={[styles.playBtnText, { color: palette.accentInverted }]}>Play</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         activeOpacity={0.8}
                         style={[
                           styles.queueBtn,
-                          isAdded && { backgroundColor: "rgba(16, 185, 129, 0.12)", borderColor: "#10B981" },
+                          {
+                            backgroundColor: isAdded ? "rgba(16, 185, 129, 0.12)" : palette.background,
+                            borderColor: isAdded ? "#10B981" : palette.border,
+                          },
                         ]}
                         onPress={() => handleQueueTrack(track)}
                       >
                         {isAdded ? (
                           <Check size={14} color="#10B981" />
                         ) : (
-                          <Plus size={14} color="#0A0A0A" />
+                          <Plus size={14} color={palette.textPrimary} />
                         )}
                       </TouchableOpacity>
                     </View>

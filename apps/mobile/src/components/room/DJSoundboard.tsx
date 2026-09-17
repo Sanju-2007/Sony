@@ -7,7 +7,8 @@ import {
   ScrollView,
 } from "react-native";
 import { Disc3 } from "lucide-react-native";
-import { typography, colors, spacing, radii } from "../../theme/tokens";
+import { typography, spacing, radii } from "../../theme/tokens";
+import { useThemeStore } from "../../store/themeStore";
 
 export interface SoundEffectItem {
   id: string;
@@ -29,7 +30,7 @@ interface DJSoundboardProps {
 }
 
 export function DJSoundboard({ onTriggerSound }: DJSoundboardProps) {
-  const palette = colors.light;
+  const { palette } = useThemeStore();
   const [activeSoundId, setActiveSoundId] = useState<string | null>(null);
 
   const handlePress = (sound: SoundEffectItem) => {
@@ -39,7 +40,7 @@ export function DJSoundboard({ onTriggerSound }: DJSoundboardProps) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
+    <View style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <Disc3 size={14} color={palette.textPrimary} style={{ marginRight: 6 }} />
@@ -62,8 +63,8 @@ export function DJSoundboard({ onTriggerSound }: DJSoundboardProps) {
               style={[
                 styles.soundCard,
                 {
-                  backgroundColor: isTriggered ? palette.textPrimary : palette.background,
-                  borderColor: isTriggered ? palette.textPrimary : palette.border,
+                  backgroundColor: isTriggered ? palette.accent : palette.background,
+                  borderColor: isTriggered ? palette.accent : palette.border,
                 },
               ]}
               onPress={() => handlePress(sound)}
@@ -72,7 +73,7 @@ export function DJSoundboard({ onTriggerSound }: DJSoundboardProps) {
               <Text
                 style={[
                   styles.soundName,
-                  { color: isTriggered ? "#FFFFFF" : palette.textPrimary },
+                  { color: isTriggered ? palette.accentInverted : palette.textPrimary },
                 ]}
               >
                 {sound.name}
@@ -104,15 +105,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semibold,
-    letterSpacing: typography.letterSpacing.tight,
+    fontSize: 12,
+    fontWeight: "700",
   },
   subtitle: {
     fontSize: 10,
   },
   soundList: {
-    flexDirection: "row",
     gap: 8,
     paddingVertical: 2,
   },
@@ -121,15 +120,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: radii.full,
+    borderRadius: radii.md,
     borderWidth: 1,
     gap: 6,
   },
   soundEmoji: {
-    fontSize: 14,
+    fontSize: 13,
   },
   soundName: {
     fontSize: 11,
-    fontWeight: typography.weights.medium,
+    fontWeight: "600",
   },
 });
