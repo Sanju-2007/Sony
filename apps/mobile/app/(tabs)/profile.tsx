@@ -34,12 +34,15 @@ import {
   Search,
   Sun,
   Moon,
+  Headphones,
+  ArrowRight,
 } from "lucide-react-native";
 import { typography, spacing, radii } from "../../src/theme/tokens";
 import { useAuthStore } from "../../src/store/authStore";
 import { usePlaybackStore, DUCKING_PROFILES, DuckingProfileType } from "../../src/store/playbackStore";
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
+import { LoginToListenModal } from "../../src/components/auth/LoginToListenModal";
 
 import { useSocialStore, FriendItem, FriendRequestItem } from "../../src/store/socialStore";
 import { useRoomsStore } from "../../src/store/roomsStore";
@@ -60,12 +63,20 @@ export default function ProfileScreen() {
   const [hdAudio, setHdAudio] = useState(true);
   const [driftNudge, setDriftNudge] = useState(true);
 
-  // Edit profile state
+  // Edit profile & Auth states
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || "Listener");
   const [bio, setBio] = useState(
     user?.bio || "Deep lo-fi beats, synthwave sunsets, and late night conversations."
   );
+
+  React.useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName);
+      if (user.bio) setBio(user.bio);
+    }
+  }, [user]);
 
   const [searchFriendQuery, setSearchFriendQuery] = useState("");
 
@@ -108,7 +119,6 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     logout();
-    router.replace("/");
   };
 
   const handleListenWithFriend = (friend: FriendItem) => {
@@ -142,33 +152,208 @@ export default function ProfileScreen() {
           <ThemeToggleButton showLabel />
         </View>
 
-        {/* Profile Card */}
-        <View style={[styles.profileCard, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
-          <View style={[styles.avatarCircle, { backgroundColor: palette.accent }]}>
-            <Text style={[styles.avatarText, { color: palette.accentInverted }]}>{displayName.charAt(0) || "A"}</Text>
-          </View>
-          <Text style={[styles.name, { color: palette.textPrimary }]}>{displayName}</Text>
-          <Text style={[styles.handle, { color: palette.textTertiary }]}>@{user?.username || "alex"}</Text>
-          <Text style={[styles.bio, { color: palette.textSecondary }]}>{bio}</Text>
-
-          <View style={styles.profileBtnRow}>
-            <TouchableOpacity
-              style={[styles.editProfileBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
-              onPress={() => setShowEditModal(true)}
+        {/* Profile Card / Login to Listen Card */}
+        {!user ? (
+          <View
+            style={[
+              styles.loginToListenCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.borderSubtle,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.loginIconCircle,
+                { backgroundColor: palette.accent },
+              ]}
             >
-              <Edit3 size={13} color={palette.textPrimary} style={{ marginRight: 6 }} />
-              <Text style={[styles.editProfileText, { color: palette.textPrimary }]}>Edit Profile</Text>
+              <Headphones size={36} color={palette.accentInverted} />
+            </View>
+            <Text style={[styles.loginCardTitle, { color: palette.textPrimary }]}>
+              Login to Listen
+            </Text>
+            <Text
+              style={[
+                styles.loginCardSubtitle,
+                { color: palette.textSecondary },
+              ]}
+            >
+              Create your sound identity with a unique User ID to host live synchronized listening rooms, chat in real-time, and connect with friends.
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.loginCtaBtn, { backgroundColor: palette.accent }]}
+              onPress={() => setShowAuthModal(true)}
+              activeOpacity={0.88}
+            >
+              <Text
+                style={[
+                  styles.loginCtaBtnText,
+                  { color: palette.accentInverted },
+                ]}
+              >
+                Login or Create Profile
+              </Text>
+              <ArrowRight
+                size={16}
+                color={palette.accentInverted}
+                style={{ marginLeft: 6 }}
+              />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.logoutBtn, { backgroundColor: "rgba(239, 68, 68, 0.08)", borderColor: "rgba(239, 68, 68, 0.2)" }]}
-              onPress={handleLogout}
-            >
-              <LogOut size={13} color="#EF4444" style={{ marginRight: 6 }} />
-              <Text style={styles.logoutText}>Log Out</Text>
-            </TouchableOpacity>
+            <View style={styles.featuresPillsRow}>
+              <View
+                style={[
+                  styles.featurePill,
+                  {
+                    backgroundColor: palette.background,
+                    borderColor: palette.borderSubtle,
+                  },
+                ]}
+              >
+                <Radio
+                  size={12}
+                  color={palette.speaking}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.featurePillText,
+                    { color: palette.textSecondary },
+                  ]}
+                >
+                  Live Sync Audio
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.featurePill,
+                  {
+                    backgroundColor: palette.background,
+                    borderColor: palette.borderSubtle,
+                  },
+                ]}
+              >
+                <Sparkles
+                  size={12}
+                  color={palette.accent}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.featurePillText,
+                    { color: palette.textSecondary },
+                  ]}
+                >
+                  Unique User ID
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.featurePill,
+                  {
+                    backgroundColor: palette.background,
+                    borderColor: palette.borderSubtle,
+                  },
+                ]}
+              >
+                <Users
+                  size={12}
+                  color={palette.textPrimary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.featurePillText,
+                    { color: palette.textSecondary },
+                  ]}
+                >
+                  Friend Circles
+                </Text>
+              </View>
+            </View>
           </View>
-        </View>
+        ) : (
+          <View
+            style={[
+              styles.profileCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.borderSubtle,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.avatarCircle,
+                { backgroundColor: palette.accent },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.avatarText,
+                  { color: palette.accentInverted },
+                ]}
+              >
+                {displayName.charAt(0) || "U"}
+              </Text>
+            </View>
+            <Text style={[styles.name, { color: palette.textPrimary }]}>
+              {displayName}
+            </Text>
+            <Text style={[styles.handle, { color: palette.textTertiary }]}>
+              @{user.username}
+            </Text>
+            <Text style={[styles.bio, { color: palette.textSecondary }]}>
+              {bio}
+            </Text>
+
+            <View style={styles.profileBtnRow}>
+              <TouchableOpacity
+                style={[
+                  styles.editProfileBtn,
+                  {
+                    backgroundColor: palette.background,
+                    borderColor: palette.border,
+                  },
+                ]}
+                onPress={() => setShowEditModal(true)}
+              >
+                <Edit3
+                  size={13}
+                  color={palette.textPrimary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.editProfileText,
+                    { color: palette.textPrimary },
+                  ]}
+                >
+                  Edit Profile
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.logoutBtn,
+                  {
+                    backgroundColor: "rgba(239, 68, 68, 0.08)",
+                    borderColor: "rgba(239, 68, 68, 0.2)",
+                  },
+                ]}
+                onPress={handleLogout}
+              >
+                <LogOut size={13} color="#EF4444" style={{ marginRight: 6 }} />
+                <Text style={styles.logoutText}>Log Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Segmented Navigation */}
         <View style={[styles.segmentContainer, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)" }]}>
@@ -639,6 +824,12 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* LOGIN TO LISTEN / UNIQUE IDENTITY MODAL */}
+      <LoginToListenModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -677,6 +868,65 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     borderWidth: 1,
     marginBottom: spacing.lg,
+  },
+  loginToListenCard: {
+    padding: spacing.xl,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.lg,
+  },
+  loginIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
+  },
+  loginCardTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    letterSpacing: typography.letterSpacing.tight,
+    marginBottom: 6,
+  },
+  loginCardSubtitle: {
+    fontSize: typography.sizes.xs,
+    textAlign: "center",
+    lineHeight: 18,
+    maxWidth: 380,
+    marginBottom: spacing.lg,
+  },
+  loginCtaBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: radii.full,
+    marginBottom: spacing.lg,
+  },
+  loginCtaBtnText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+  },
+  featuresPillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+  },
+  featurePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.full,
+    borderWidth: 1,
+  },
+  featurePillText: {
+    fontSize: 10,
+    fontWeight: "500",
   },
   avatarCircle: {
     width: 72,
