@@ -66,8 +66,8 @@ class ApiClient {
   }
 
   // AUTH
-  async sendOtp(email: string): Promise<{ success: boolean; message: string; previewUrl?: string }> {
-    return this.request<{ success: boolean; message: string; previewUrl?: string }>('/auth/otp/send', {
+  async sendOtp(email: string): Promise<{ success: boolean; message: string; code?: string; previewUrl?: string }> {
+    return this.request<{ success: boolean; message: string; code?: string; previewUrl?: string }>('/auth/otp/send', {
       method: 'POST',
       body: JSON.stringify({ email }),
     });

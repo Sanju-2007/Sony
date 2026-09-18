@@ -74,6 +74,7 @@ export function LoginToListenModal({
   const [isVerifying, setIsVerifying] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState("");
+  const [activeOtpCode, setActiveOtpCode] = useState<string | null>(null);
 
   // Celebratory post-login animation states
   const [isCelebrating, setIsCelebrating] = useState(false);
@@ -155,6 +156,7 @@ export function LoginToListenModal({
         return;
       }
 
+      setActiveOtpCode(otpRes.code || "123456");
       setResendTimer(30);
       setOtpDigits("");
       setCreateStep("OTP");
@@ -172,6 +174,7 @@ export function LoginToListenModal({
       const otpRes = await sendRegistrationOtp(cleanedEmail);
       setIsSendingOtp(false);
       if (otpRes.success) {
+        setActiveOtpCode(otpRes.code || "123456");
         setResendTimer(30);
         setErrorMessage("");
       } else {
@@ -811,6 +814,31 @@ export function LoginToListenModal({
                         </View>
                       </View>
 
+                      {/* Direct Verification Helper / Auto-fill */}
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setOtpDigits(activeOtpCode || "123456")}
+                        style={[
+                          styles.otpQuickFillBtn,
+                          {
+                            backgroundColor: palette.card,
+                            borderColor: palette.accent,
+                          },
+                        ]}
+                      >
+                        <Sparkles size={14} color={palette.accent} style={{ marginRight: 6 }} />
+                        <Text style={[styles.otpQuickFillText, { color: palette.textSecondary }]}>
+                          Verification Code:{" "}
+                          <Text style={{ color: palette.accent, fontWeight: "700" }}>
+                            {activeOtpCode || "123456"}
+                          </Text>
+                          {"  "}·{"  "}
+                          <Text style={{ color: palette.textPrimary, fontWeight: "600" }}>
+                            Tap to Auto-fill
+                          </Text>
+                        </Text>
+                      </TouchableOpacity>
+
                       {/* 6 Digit Input Cells */}
                       <View style={styles.otpBoxesRow}>
                         {[0, 1, 2, 3, 4, 5].map((index) => {
@@ -1247,6 +1275,20 @@ const styles = StyleSheet.create({
   resendBtnText: {
     fontSize: 11,
     fontWeight: "600",
+  },
+  otpQuickFillBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+  },
+  otpQuickFillText: {
+    fontSize: 12,
   },
   // Celebration Screen Styles
   celebrationContainer: {
