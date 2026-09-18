@@ -9,27 +9,49 @@ export class RedisService implements OnModuleDestroy {
   private isConnected = false;
 
   constructor() {
-    const host = process.env.REDIS_HOST || 'localhost';
+    const redisUrl = process.env.REDIS_URL;
+    const host = process.env.REDIS_HOST;
     const port = parseInt(process.env.REDIS_PORT || '6379', 10);
     const password = process.env.REDIS_PASSWORD || undefined;
 
-    try {
-      this.client = new Redis({
-        host,
-        port,
-        password,
-        lazyConnect: true,
-        maxRetriesPerRequest: 1,
-        retryStrategy: () => null, // don't loop endlessly if redis container is down
-      });
+    // If running in production (e.g. Render Web Service) without an external Redis instance,
+    // gracefully fall back to the built-in in-memory state store without connection errors.
+    if (process.env.NODE_ENV === 'production' && !host && !redisUrl) {
+      this.logger.log('No REDIS_URL or REDIS_HOST provided in production. Using high-performance in-memory cache.');
+      return;
+    }
 
-      this.client.connect().then(() => {
-        this.isConnected = true;
-        this.logger.log(`Connected to Redis at ${host}:${port}`);
-      }).catch((err) => {
-        this.logger.warn(`Redis not available (${err.message}). Using resilient in-memory state fallback.`);
+    try {
+      this.client = redisUrl
+        ? new Redis(redisUrl, {
+            lazyConnect: true,
+            maxRetriesPerRequest: 1,
+            retryStrategy: () => null,
+          })
+        : new Redis({
+            host: host || 'localhost',
+            port,
+            password,
+            lazyConnect: true,
+            maxRetriesPerRequest: 1,
+            retryStrategy: () => null,
+          });
+
+      // Attach error listener to avoid unhandled EventEmitter warnings
+      this.client.on('error', () => {
         this.isConnected = false;
       });
+
+      this.client
+        .connect()
+        .then(() => {
+          this.isConnected = true;
+          this.logger.log(`Connected to Redis at ${host || 'localhost'}:${port}`);
+        })
+        .catch((err) => {
+          this.logger.warn(`Redis not available (${err.message}). Using resilient in-memory state fallback.`);
+          this.isConnected = false;
+        });
     } catch (e: any) {
       this.logger.warn(`Redis init error (${e.message}). Using resilient in-memory state fallback.`);
     }
