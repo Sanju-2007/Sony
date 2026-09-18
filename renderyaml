@@ -44,6 +44,10 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
+      - key: EXPO_PUBLIC_API_URL
+        value: https://sony-social-api.onrender.com/api/v1
+      - key: EXPO_PUBLIC_WS_URL
+        value: https://sony-social-api.onrender.com/realtime
 
 databases:
   # ----------------------------------------------------------------------------
