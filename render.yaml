@@ -8,8 +8,7 @@ services:
     plan: free
     region: oregon
     buildCommand: npm ci && npm run prisma:generate --workspace=@sony/api && npm run build
-    preDeployCommand: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
-    startCommand: node apps/api/dist/main.js
+    startCommand: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && node apps/api/dist/main.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -35,7 +34,6 @@ services:
     name: sony-social-web
     runtime: static
     plan: free
-    region: oregon
     buildCommand: npm ci && npm run build && npm run mobile:build
     staticPublishPath: apps/mobile/dist
     routes:
@@ -51,4 +49,4 @@ databases:
     plan: free
     region: oregon
     databaseName: social_music_db
-    user: postgres
+    user: sony_user
