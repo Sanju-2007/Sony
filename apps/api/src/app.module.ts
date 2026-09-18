@@ -14,6 +14,7 @@ import { MusicModule } from './modules/music/music.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { HealthModule } from './modules/health/health.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -33,5 +34,6 @@ import { HealthModule } from './modules/health/health.module';
     ReportsModule,
     HealthModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

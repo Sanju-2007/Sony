@@ -22,7 +22,9 @@ async function bootstrap() {
   });
 
   const apiPrefix = process.env.API_PREFIX || 'api/v1';
-  app.setGlobalPrefix(apiPrefix);
+  app.setGlobalPrefix(apiPrefix, {
+    exclude: ['/'],
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
