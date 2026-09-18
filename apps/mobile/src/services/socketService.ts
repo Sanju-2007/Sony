@@ -20,6 +20,7 @@ import {
 import { useRoomStore } from '../store/roomStore';
 import { usePlaybackStore } from '../store/playbackStore';
 import { useRoomThemeStore } from '../store/roomThemeStore';
+import { useChatStore } from '../store/chatStore';
 
 export const getWsUrl = (): string => {
   if (process.env.EXPO_PUBLIC_WS_URL) {
@@ -92,6 +93,11 @@ class SocketService {
     // Chat events
     this.socket.on('chat:message', (data: ChatMessageDto) => {
       useRoomStore.getState().addMessage(data);
+    });
+
+    // Realtime Direct Messages between friends
+    this.socket.on('direct:message' as any, (data: any) => {
+      useChatStore.getState().receiveDirectMessage(data);
     });
 
     // Reaction bursts
@@ -173,6 +179,17 @@ class SocketService {
 
   sendChatMessage(roomId: string, content: string, type: 'TEXT' | 'VOICE' = 'TEXT', voiceMessageId?: string) {
     this.socket?.emit('chat:send', { roomId, content, type, voiceMessageId });
+  }
+
+  sendDirectMessage(payload: {
+    recipientId?: string;
+    recipientUsername?: string;
+    content: string;
+    type?: 'TEXT' | 'VOICE';
+    durationSec?: number;
+    waveform?: number[];
+  }) {
+    this.socket?.emit('direct:send' as any, payload);
   }
 
   sendReaction(roomId: string, emoji: string) {

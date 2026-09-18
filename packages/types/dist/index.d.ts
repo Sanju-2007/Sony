@@ -238,6 +238,14 @@ export interface ClientToServerEvents {
         roomId: string;
         seat: SpatialSeat;
     }) => void;
+    'direct:send': (data: {
+        recipientId?: string;
+        recipientUsername?: string;
+        content: string;
+        type?: MessageType;
+        durationSec?: number;
+        waveform?: number[];
+    }) => void;
 }
 export interface ServerToClientEvents {
     "soundboard:played": (data: SoundboardTriggerPayload) => void;
@@ -268,6 +276,22 @@ export interface ServerToClientEvents {
         userId: string;
         isTyping: boolean;
     }) => void;
+    'direct:message': (data: {
+        id: string;
+        conversationId?: string;
+        senderId: string;
+        senderUsername: string;
+        senderDisplayName: string;
+        senderAvatar?: string | null;
+        recipientId?: string;
+        recipientUsername?: string;
+        content: string;
+        type: string;
+        durationSec?: number;
+        waveform?: number[];
+        createdAt: string;
+    }) => void;
+    'direct:sent': (data: any) => void;
     'reaction:burst': (data: ReactionBurstPayload) => void;
     'reaction:super_burst': (data: SuperReactionPayload) => void;
     'dedication:new': (data: SongDedication) => void;

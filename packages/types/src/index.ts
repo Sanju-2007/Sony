@@ -253,6 +253,14 @@ export interface ClientToServerEvents {
   'dj:trigger_commentary': (data: { roomId: string; announcement: AIDJAnnouncement }) => void;
   'milestone:claim': (data: { roomId: string; milestone: ListeningMilestone }) => void;
   'spatial:position_update': (data: { roomId: string; seat: SpatialSeat }) => void;
+  'direct:send': (data: {
+    recipientId?: string;
+    recipientUsername?: string;
+    content: string;
+    type?: MessageType;
+    durationSec?: number;
+    waveform?: number[];
+  }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -266,6 +274,22 @@ export interface ServerToClientEvents {
   'playback:error': (data: { code: string; message: string }) => void;
   'chat:message': (data: ChatMessageDto) => void;
   'chat:typing': (data: { userId: string; isTyping: boolean }) => void;
+  'direct:message': (data: {
+    id: string;
+    conversationId?: string;
+    senderId: string;
+    senderUsername: string;
+    senderDisplayName: string;
+    senderAvatar?: string | null;
+    recipientId?: string;
+    recipientUsername?: string;
+    content: string;
+    type: string;
+    durationSec?: number;
+    waveform?: number[];
+    createdAt: string;
+  }) => void;
+  'direct:sent': (data: any) => void;
   'reaction:burst': (data: ReactionBurstPayload) => void;
   'reaction:super_burst': (data: SuperReactionPayload) => void;
   'dedication:new': (data: SongDedication) => void;

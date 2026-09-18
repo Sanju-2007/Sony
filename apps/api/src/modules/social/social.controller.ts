@@ -38,4 +38,17 @@ export class SocialController {
   async blockUser(@CurrentUser('id') userId: string, @Param('id') targetUserId: string) {
     return this.socialService.blockUser(userId, targetUserId);
   }
+
+  @Get('messages/:target')
+  async getDirectMessages(@CurrentUser('id') userId: string, @Param('target') target: string) {
+    return this.socialService.getDirectMessages(userId, target);
+  }
+
+  @Post('messages')
+  async sendDirectMessage(
+    @CurrentUser('id') userId: string,
+    @Body() body: { targetUserId: string; content: string; type?: 'TEXT' | 'VOICE' },
+  ) {
+    return this.socialService.sendDirectMessage(userId, body.targetUserId, body.content, body.type);
+  }
 }

@@ -159,6 +159,93 @@ export class SocialService {
     return { success: true };
   }
 
+  async getDirectMessages(userId: string, targetIdOrUsername: string) {
+    const targetUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: targetIdOrUsername },
+          { username: targetIdOrUsername },
+        ],
+      },
+      include: { profile: true },
+    });
+
+    if (!targetUser) return [];
+
+    const sortedIds = [userId, targetUser.id].sort();
+    const conversationId = `dm:${sortedIds[0]}:${sortedIds[1]}`;
+
+    const messages = await this.prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'asc' },
+      take: 100,
+      include: {
+        sender: { include: { profile: true } },
+      },
+    });
+
+    return messages.map((m) => ({
+      id: m.id,
+      conversationId: m.conversationId,
+      senderId: m.senderId,
+      senderUsername: m.sender.username,
+      senderDisplayName: m.sender.profile?.displayName || m.sender.username,
+      senderAvatar: m.sender.profile?.avatarUrl || null,
+      content: m.content,
+      type: m.type,
+      createdAt: m.createdAt.toISOString(),
+      isMine: m.senderId === userId,
+    }));
+  }
+
+  async sendDirectMessage(
+    senderId: string,
+    targetIdOrUsername: string,
+    content: string,
+    type: 'TEXT' | 'VOICE' = 'TEXT',
+  ) {
+    const targetUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: targetIdOrUsername },
+          { username: targetIdOrUsername },
+        ],
+      },
+      include: { profile: true },
+    });
+
+    if (!targetUser) throw new NotFoundException('Recipient not found');
+
+    const sortedIds = [senderId, targetUser.id].sort();
+    const conversationId = `dm:${sortedIds[0]}:${sortedIds[1]}`;
+
+    const message = await this.prisma.message.create({
+      data: {
+        conversationId,
+        senderId,
+        content: content.trim(),
+        type: (type as any) || 'TEXT',
+      },
+      include: {
+        sender: { include: { profile: true } },
+      },
+    });
+
+    return {
+      id: message.id,
+      conversationId: message.conversationId,
+      senderId: message.senderId,
+      senderUsername: message.sender.username,
+      senderDisplayName: message.sender.profile?.displayName || message.sender.username,
+      senderAvatar: message.sender.profile?.avatarUrl || null,
+      recipientId: targetUser.id,
+      recipientUsername: targetUser.username,
+      content: message.content,
+      type: message.type,
+      createdAt: message.createdAt.toISOString(),
+    };
+  }
+
   private toPublicUser(user: any): PublicUser {
     return {
       id: user.id,

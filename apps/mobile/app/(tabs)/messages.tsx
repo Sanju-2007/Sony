@@ -36,7 +36,15 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function MessagesScreen() {
   const { palette, isDark } = useThemeStore();
-  const { threads, activeThreadId, setActiveThreadId, startConversation, sendMessage, sendVoiceNote } = useChatStore();
+  const {
+    threads,
+    activeThreadId,
+    setActiveThreadId,
+    startConversation,
+    sendMessage,
+    sendVoiceNote,
+    loadThreadHistory,
+  } = useChatStore();
   const { friends } = useSocialStore();
   const { isUserBlocked } = useModerationStore();
 
@@ -54,6 +62,13 @@ export default function MessagesScreen() {
 
   const visibleThreads = threads.filter((t) => !isUserBlocked(t.id));
   const activeThread = visibleThreads.find((t) => t.id === activeThreadId) || null;
+
+  // Automatically sync backend history when opening a thread
+  useEffect(() => {
+    if (activeThread?.id) {
+      loadThreadHistory(activeThread.id);
+    }
+  }, [activeThread?.id]);
 
   // Playback timer simulator
   useEffect(() => {

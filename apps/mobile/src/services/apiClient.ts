@@ -154,6 +154,22 @@ class ApiClient {
       body: JSON.stringify({ targetUserId }),
     });
   }
+
+  // DIRECT MESSAGING
+  async getDirectMessages(targetUserId: string): Promise<any[]> {
+    return this.request<any[]>(`/friends/messages/${targetUserId}`);
+  }
+
+  async sendDirectMessage(
+    targetUserId: string,
+    content: string,
+    type: 'TEXT' | 'VOICE' = 'TEXT',
+  ): Promise<any> {
+    return this.request<any>('/friends/messages', {
+      method: 'POST',
+      body: JSON.stringify({ targetUserId, content, type }),
+    });
+  }
 }
 
 export const api = new ApiClient();

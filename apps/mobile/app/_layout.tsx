@@ -6,11 +6,22 @@ import { StyleSheet, Platform, View } from 'react-native';
 import { BackgroundParticles } from '../src/components/particles/BackgroundParticles';
 import { usePlaybackStore } from '../src/store/playbackStore';
 import { useThemeStore } from '../src/store/themeStore';
+import { useAuthStore } from '../src/store/authStore';
+import { socketService } from '../src/services/socketService';
 
 export default function RootLayout() {
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
   const isVoiceActive = usePlaybackStore((s) => s.isVoiceActive);
   const { isDark, palette } = useThemeStore();
+  const token = useAuthStore((s) => s.tokens?.accessToken);
+  const user = useAuthStore((s) => s.user);
+
+  React.useEffect(() => {
+    const effectiveToken = token || (user ? `token-${user.id}` : null);
+    if (effectiveToken) {
+      socketService.connect(effectiveToken);
+    }
+  }, [token, user]);
 
   return (
     <GestureHandlerRootView style={[styles.container, { backgroundColor: palette.background }]}>

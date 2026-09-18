@@ -84,6 +84,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       socket.data.userId = userId;
       socket.data.username = username;
 
+      // Join user personal channel for real-time direct messaging and alerts
+      socket.join(`user:${userId}`);
+      socket.join(`user:${username}`);
+
       // Update presence in Redis
       try {
         await this.redis.set(`presence:${userId}`, 'ONLINE', 120);
@@ -296,6 +300,102 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     const userId = socket.data.userId;
     if (!userId) return;
     socket.to(data.roomId).emit('chat:typing', { userId, isTyping: data.isTyping });
+  }
+
+  @SubscribeMessage('direct:send')
+  async handleDirectMessage(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody()
+    data: {
+      recipientId?: string;
+      recipientUsername?: string;
+      content: string;
+      type?: 'TEXT' | 'VOICE';
+      durationSec?: number;
+      waveform?: number[];
+    },
+  ) {
+    const senderId = socket.data.userId;
+    const senderUsername = socket.data.username;
+    if (!senderId || !data.content?.trim()) return;
+
+    try {
+      // 1. Resolve recipient
+      let recipient: any = null;
+      if (data.recipientId) {
+        recipient = await this.prisma.user.findFirst({
+          where: {
+            OR: [{ id: data.recipientId }, { username: data.recipientId }],
+          },
+          include: { profile: true },
+        });
+      }
+      if (!recipient && data.recipientUsername) {
+        recipient = await this.prisma.user.findFirst({
+          where: { username: data.recipientUsername },
+          include: { profile: true },
+        });
+      }
+
+      // 2. Resolve sender profile
+      const sender = await this.prisma.user.findUnique({
+        where: { id: senderId },
+        include: { profile: true },
+      });
+
+      const recipientId = recipient ? recipient.id : data.recipientId;
+      const recipientUsername = recipient ? recipient.username : (data.recipientUsername || 'user');
+      const sortedIds = [senderId, recipientId || 'unknown'].sort();
+      const conversationId = `dm:${sortedIds[0]}:${sortedIds[1]}`;
+
+      // 3. Persist to database if recipient is known in DB
+      let savedMsg: any = null;
+      if (recipient) {
+        try {
+          savedMsg = await this.prisma.message.create({
+            data: {
+              conversationId,
+              senderId,
+              content: data.content.trim(),
+              type: (data.type as any) || 'TEXT',
+            },
+          });
+        } catch (dbErr: any) {
+          this.logger.warn(`Failed to persist direct message: ${dbErr.message}`);
+        }
+      }
+
+      const messagePayload = {
+        id: savedMsg ? savedMsg.id : `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        conversationId,
+        senderId,
+        senderUsername: sender?.username || senderUsername || 'me',
+        senderDisplayName: sender?.profile?.displayName || sender?.username || senderUsername || 'User',
+        senderAvatar: sender?.profile?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&fit=crop&q=80',
+        recipientId,
+        recipientUsername,
+        content: data.content.trim(),
+        type: data.type || 'TEXT',
+        durationSec: data.durationSec,
+        waveform: data.waveform,
+        createdAt: savedMsg ? savedMsg.createdAt.toISOString() : new Date().toISOString(),
+      };
+
+      // 4. Emit to recipient on their personal rooms
+      if (recipientId) {
+        this.server.to(`user:${recipientId}`).emit('direct:message' as any, messagePayload as any);
+      }
+      if (recipientUsername) {
+        this.server.to(`user:${recipientUsername}`).emit('direct:message' as any, messagePayload as any);
+      }
+
+      // 5. Echo back to sender channels (syncs all tabs/devices)
+      this.server.to(`user:${senderId}`).emit('direct:message' as any, messagePayload as any);
+      socket.emit('direct:sent' as any, messagePayload as any);
+    } catch (err: any) {
+      this.logger.error(`Error in handleDirectMessage: ${err.message}`);
+      socket.emit('error', { message: err.message });
+    }
   }
 
   @SubscribeMessage('reaction:send')
