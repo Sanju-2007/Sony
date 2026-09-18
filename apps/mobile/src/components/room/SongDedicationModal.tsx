@@ -11,6 +11,8 @@ import {
 import { Sparkles, X, Heart, Zap, Disc3, Check, Send } from "lucide-react-native";
 import { colors, spacing, typography, radii } from "../../theme/tokens";
 import { useRoomThemeStore } from "../../store/roomThemeStore";
+import { useAuthStore } from "../../store/authStore";
+import { useRoomStore } from "../../store/roomStore";
 import { socketService } from "../../services/socketService";
 import { DedicationBadgeStyle, SongDedication, TrackMetadata } from "@sony/types";
 
@@ -20,13 +22,6 @@ interface SongDedicationModalProps {
   currentTrack: TrackMetadata | null;
   roomId: string;
 }
-
-const RECIPIENT_OPTIONS = [
-  { id: "all", name: "Everyone in the Room" },
-  { id: "user-2", name: "Aisha" },
-  { id: "user-3", name: "Rahul" },
-  { id: "user-4", name: "Elena" },
-];
 
 const STYLE_OPTIONS: { id: DedicationBadgeStyle; label: string; icon: any; color: string }[] = [
   { id: "GOLDEN", label: "Golden Sunset", icon: Sparkles, color: "#F59E0B" },
@@ -43,8 +38,17 @@ export const SongDedicationModal: React.FC<SongDedicationModalProps> = ({
 }) => {
   const palette = colors.dark;
   const { addDedication } = useRoomThemeStore();
+  const { user } = useAuthStore();
+  const { members } = useRoomStore();
 
-  const [selectedRecipient, setSelectedRecipient] = useState(RECIPIENT_OPTIONS[0]);
+  const recipientOptions = [
+    { id: "all", name: "Everyone in the Room" },
+    ...members
+      .filter((m) => m.userId !== user?.id)
+      .map((m) => ({ id: m.userId, name: m.user.displayName })),
+  ];
+
+  const [selectedRecipient, setSelectedRecipient] = useState(recipientOptions[0]);
   const [selectedStyle, setSelectedStyle] = useState<DedicationBadgeStyle>("GOLDEN");
   const [message, setMessage] = useState("");
   const [sentSuccess, setSentSuccess] = useState(false);
@@ -56,8 +60,8 @@ export const SongDedicationModal: React.FC<SongDedicationModalProps> = ({
       id: "dedication-" + Date.now(),
       roomId,
       trackId: currentTrack?.id || "track-01",
-      fromUserId: "user-1",
-      fromUserName: "Sanju (You)",
+      fromUserId: user?.id || "user-me",
+      fromUserName: user?.displayName || "You",
       toUserId: selectedRecipient.id === "all" ? undefined : selectedRecipient.id,
       toUserName: selectedRecipient.name,
       message: message.trim(),
@@ -106,7 +110,7 @@ export const SongDedicationModal: React.FC<SongDedicationModalProps> = ({
             {/* Recipient Selection */}
             <Text style={[styles.sectionTitle, { color: palette.textTertiary }]}>DEDICATED TO</Text>
             <View style={styles.recipientRow}>
-              {RECIPIENT_OPTIONS.map((rec) => {
+              {recipientOptions.map((rec) => {
                 const isSelected = selectedRecipient.id === rec.id;
                 return (
                   <TouchableOpacity

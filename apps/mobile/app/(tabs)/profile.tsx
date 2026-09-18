@@ -114,9 +114,15 @@ export default function ProfileScreen() {
 
   const [searchFriendQuery, setSearchFriendQuery] = useState("");
 
+  const hostedRoomsCount = user
+    ? rooms.filter((r) => r.ownerId === user.id).length
+    : 0;
+
+  const friendsConnectedCount = user ? friends.length : 0;
+
   const stats = [
-    { label: "Rooms Hosted", value: String(rooms.length) },
-    { label: "Friends Connected", value: String(friends.length) },
+    { label: "Rooms Hosted", value: String(hostedRoomsCount) },
+    { label: "Friends Connected", value: String(friendsConnectedCount) },
     { label: "Sync Precision", value: "<10ms" },
     { label: "Opus Audio", value: "48kHz" },
   ];
