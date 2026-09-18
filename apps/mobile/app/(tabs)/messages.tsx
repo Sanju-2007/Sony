@@ -36,11 +36,10 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function MessagesScreen() {
   const { palette, isDark } = useThemeStore();
-  const { threads, startConversation, sendMessage, sendVoiceNote } = useChatStore();
+  const { threads, activeThreadId, setActiveThreadId, startConversation, sendMessage, sendVoiceNote } = useChatStore();
   const { friends } = useSocialStore();
   const { isUserBlocked } = useModerationStore();
 
-  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [customRecipient, setCustomRecipient] = useState("");
@@ -172,13 +171,48 @@ export default function MessagesScreen() {
             <Text style={[styles.emptyInboxSubtitle, { color: palette.textSecondary }]}>
               Chat directly or send synchronized voice notes to friends while listening together.
             </Text>
-            <TouchableOpacity
-              style={[styles.emptyInboxBtn, { backgroundColor: palette.accent }]}
-              onPress={() => setShowNewChatModal(true)}
-            >
-              <Plus size={15} color={palette.accentInverted} style={{ marginRight: 6 }} />
-              <Text style={[styles.emptyInboxBtnText, { color: palette.accentInverted }]}>Start Conversation</Text>
-            </TouchableOpacity>
+
+            {friends.length > 0 ? (
+              <View style={{ width: "100%", marginTop: spacing.sm }}>
+                <Text style={[styles.friendsListLabel, { color: palette.textTertiary, textAlign: "center", marginBottom: 10 }]}>
+                  QUICK CHAT WITH YOUR FRIENDS
+                </Text>
+                <View style={{ gap: 8 }}>
+                  {friends.map((f) => (
+                    <TouchableOpacity
+                      key={f.id}
+                      style={[styles.friendPickRow, { backgroundColor: palette.card, borderColor: palette.borderSubtle }]}
+                      onPress={() => {
+                        startConversation({
+                          id: f.id,
+                          name: f.name,
+                          handle: f.handle,
+                          avatar: f.avatar,
+                        });
+                      }}
+                    >
+                      <Image source={{ uri: f.avatar }} style={styles.friendPickAvatar} />
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={[styles.friendPickName, { color: palette.textPrimary }]}>{f.name}</Text>
+                        <Text style={[styles.friendPickHandle, { color: palette.textTertiary }]}>{f.handle}</Text>
+                      </View>
+                      <View style={[styles.newChatBtn, { backgroundColor: palette.accent }]}>
+                        <MessageSquare size={12} color={palette.accentInverted} style={{ marginRight: 4 }} />
+                        <Text style={[styles.newChatBtnText, { color: palette.accentInverted }]}>Chat</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.emptyInboxBtn, { backgroundColor: palette.accent }]}
+                onPress={() => setShowNewChatModal(true)}
+              >
+                <Plus size={15} color={palette.accentInverted} style={{ marginRight: 6 }} />
+                <Text style={[styles.emptyInboxBtnText, { color: palette.accentInverted }]}>Start Conversation</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           <View style={styles.list}>

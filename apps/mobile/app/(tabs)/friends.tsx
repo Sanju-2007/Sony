@@ -21,6 +21,9 @@ import {
   Search,
   X,
   Sparkles,
+  MessageSquare,
+  Clock,
+  Send,
 } from "lucide-react-native";
 import { typography, spacing, radii } from "../../src/theme/tokens";
 import { usePlaybackStore } from "../../src/store/playbackStore";
@@ -29,17 +32,28 @@ import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 
 import { useSocialStore, FriendItem } from "../../src/store/socialStore";
+import { useChatStore } from "../../src/store/chatStore";
 
 export default function FriendsScreen() {
   const router = useRouter();
   const { palette, isDark } = useThemeStore();
   const { playTrackImmediate } = usePlaybackStore();
-  const { friends, pendingRequests, acceptRequest, declineRequest, addFriend } = useSocialStore();
+  const { friends, pendingRequests, sentRequests, acceptRequest, declineRequest, addFriend, sendRequest } = useSocialStore();
+  const { startConversation } = useChatStore();
 
   const [activeTab, setActiveTab] = useState<"activity" | "requests">("activity");
+  const [requestsSubTab, setRequestsSubTab] = useState<"incoming" | "sent">("incoming");
   const [syncedFriendId, setSyncedFriendId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchHandle, setSearchHandle] = useState("");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const sentList = Object.values(sentRequests);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const handleListenAlong = (friend: FriendItem) => {
     if (!friend.currentTrack) return;
@@ -64,7 +78,9 @@ export default function FriendsScreen() {
       avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&fit=crop&q=80",
       status: "ONLINE",
     };
+    sendRequest(newFriend);
     addFriend(newFriend);
+    showToast(`✓ Friend request sent to @${raw.toLowerCase()}!`);
     setSearchHandle("");
     setShowAddModal(false);
   };
@@ -88,6 +104,14 @@ export default function FriendsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Feedback Toast */}
+        {toastMessage && (
+          <View style={[styles.toastBanner, { backgroundColor: palette.card, borderColor: palette.speaking }]}>
+            <Sparkles size={14} color={palette.speaking} style={{ marginRight: 6 }} />
+            <Text style={[styles.toastText, { color: palette.textPrimary }]}>{toastMessage}</Text>
+          </View>
+        )}
 
         {/* Tab Toggle (Activity vs Requests) */}
         <View style={[styles.tabToggleRow, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
@@ -234,6 +258,28 @@ export default function FriendsScreen() {
                           )}
                         </TouchableOpacity>
                       )}
+                      {/* Direct Message Chat Button */}
+                      <TouchableOpacity
+                        style={[
+                          styles.chatBtn,
+                          {
+                            backgroundColor: palette.card,
+                            borderColor: palette.border,
+                          },
+                        ]}
+                        onPress={() => {
+                          startConversation({
+                            id: f.id,
+                            name: f.name,
+                            handle: f.handle,
+                            avatar: f.avatar,
+                          });
+                          router.push("/(tabs)/messages");
+                        }}
+                      >
+                        <MessageSquare size={12} color={palette.textPrimary} style={{ marginRight: 4 }} />
+                        <Text style={[styles.chatBtnText, { color: palette.textPrimary }]}>Chat</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 );
@@ -244,41 +290,140 @@ export default function FriendsScreen() {
 
         {/* ACTIVE TAB: REQUESTS */}
         {activeTab === "requests" && (
-          pendingRequests.length === 0 ? (
-            <View style={[styles.emptyFriendsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <Check size={28} color={palette.accent} style={{ marginBottom: 10 }} />
-              <Text style={[styles.emptyFriendsTitle, { color: palette.textPrimary }]}>No pending requests</Text>
-              <Text style={[styles.emptyFriendsSubtitle, { color: palette.textSecondary }]}>
-                When other listeners send you an invite to sync or connect, invitations will appear here.
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.list}>
-              {pendingRequests.map((r) => (
-                <View
-                  key={r.id}
+          <View>
+            {/* Sub Toggle: Incoming vs Sent */}
+            <View style={[styles.subToggleRow, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}>
+              <TouchableOpacity
+                style={[
+                  styles.subToggleBtn,
+                  requestsSubTab === "incoming" && { backgroundColor: palette.card, borderColor: palette.border },
+                ]}
+                onPress={() => setRequestsSubTab("incoming")}
+              >
+                <Text
                   style={[
-                    styles.requestCard,
-                    { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                    styles.subToggleBtnText,
+                    {
+                      color: requestsSubTab === "incoming" ? palette.textPrimary : palette.textTertiary,
+                      fontWeight: requestsSubTab === "incoming" ? "700" : "500",
+                    },
                   ]}
                 >
-                  <Image source={{ uri: r.avatar }} style={styles.avatar} />
-                  <View style={styles.info}>
-                    <Text style={[styles.name, { color: palette.textPrimary }]}>{r.name}</Text>
-                    <Text style={[styles.handle, { color: palette.textTertiary }]}>
-                      {r.handle} · {r.mutualCount} mutual friends
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.acceptBtn, { backgroundColor: palette.accent }]}
-                    onPress={() => acceptRequest(r)}
-                  >
-                    <Text style={[styles.acceptBtnText, { color: palette.accentInverted }]}>Accept</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
+                  Incoming ({pendingRequests.length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.subToggleBtn,
+                  requestsSubTab === "sent" && { backgroundColor: palette.card, borderColor: palette.border },
+                ]}
+                onPress={() => setRequestsSubTab("sent")}
+              >
+                <Text
+                  style={[
+                    styles.subToggleBtnText,
+                    {
+                      color: requestsSubTab === "sent" ? palette.textPrimary : palette.textTertiary,
+                      fontWeight: requestsSubTab === "sent" ? "700" : "500",
+                    },
+                  ]}
+                >
+                  Sent Requests ({sentList.length})
+                </Text>
+              </TouchableOpacity>
             </View>
-          )
+
+            {requestsSubTab === "incoming" ? (
+              pendingRequests.length === 0 ? (
+                <View style={[styles.emptyFriendsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <Check size={28} color={palette.accent} style={{ marginBottom: 10 }} />
+                  <Text style={[styles.emptyFriendsTitle, { color: palette.textPrimary }]}>No incoming requests</Text>
+                  <Text style={[styles.emptyFriendsSubtitle, { color: palette.textSecondary }]}>
+                    When other listeners send you an invite to sync or connect, invitations will appear here.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.list}>
+                  {pendingRequests.map((r) => (
+                    <View
+                      key={r.id}
+                      style={[
+                        styles.requestCard,
+                        { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                      ]}
+                    >
+                      <Image source={{ uri: r.avatar }} style={styles.avatar} />
+                      <View style={styles.info}>
+                        <Text style={[styles.name, { color: palette.textPrimary }]}>{r.name}</Text>
+                        <Text style={[styles.handle, { color: palette.textTertiary }]}>
+                          {r.handle} · {r.mutualCount} mutual friends
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.acceptBtn, { backgroundColor: palette.accent }]}
+                        onPress={() => acceptRequest(r)}
+                      >
+                        <Text style={[styles.acceptBtnText, { color: palette.accentInverted }]}>Accept</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )
+            ) : (
+              sentList.length === 0 ? (
+                <View style={[styles.emptyFriendsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <Clock size={28} color={palette.accent} style={{ marginBottom: 10 }} />
+                  <Text style={[styles.emptyFriendsTitle, { color: palette.textPrimary }]}>No sent requests</Text>
+                  <Text style={[styles.emptyFriendsSubtitle, { color: palette.textSecondary }]}>
+                    Friend requests you send to other users will be listed here with live confirmation status.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.list}>
+                  {sentList.map((req) => (
+                    <View
+                      key={req.id}
+                      style={[
+                        styles.requestCard,
+                        { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                      ]}
+                    >
+                      <Image source={{ uri: req.avatar }} style={styles.avatar} />
+                      <View style={styles.info}>
+                        <Text style={[styles.name, { color: palette.textPrimary }]}>{req.name}</Text>
+                        <Text style={[styles.handle, { color: palette.textTertiary }]}>
+                          {req.handle} · Sent {req.sentAt}
+                        </Text>
+                      </View>
+
+                      <View style={styles.sentActionsRow}>
+                        <View style={[styles.sentStatusBadge, { backgroundColor: palette.card, borderColor: palette.speaking }]}>
+                          <Check size={11} color={palette.speaking} style={{ marginRight: 4 }} />
+                          <Text style={[styles.sentStatusText, { color: palette.speaking }]}>Request Sent</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.chatBtn, { backgroundColor: palette.surface, borderColor: palette.border, marginLeft: 6 }]}
+                          onPress={() => {
+                            startConversation({
+                              id: req.id,
+                              name: req.name,
+                              handle: req.handle,
+                              avatar: req.avatar,
+                            });
+                            router.push("/(tabs)/messages");
+                          }}
+                        >
+                          <MessageSquare size={12} color={palette.textPrimary} style={{ marginRight: 3 }} />
+                          <Text style={[styles.chatBtnText, { color: palette.textPrimary }]}>Chat</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )
+            )}
+          </View>
         )}
       </ScrollView>
 
@@ -472,6 +617,65 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.semibold,
+  },
+  chatBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    marginLeft: 6,
+  },
+  chatBtnText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+  },
+  subToggleRow: {
+    flexDirection: "row",
+    padding: 3,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    marginBottom: spacing.md,
+  },
+  subToggleBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.sm,
+  },
+  subToggleBtnText: {
+    fontSize: typography.sizes.xs,
+  },
+  sentActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sentStatusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.full,
+    borderWidth: 1,
+  },
+  sentStatusText: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  toastBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  toastText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: "600",
   },
 
   // Modal

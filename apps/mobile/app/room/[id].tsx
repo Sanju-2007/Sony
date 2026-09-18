@@ -20,7 +20,7 @@ import { RoomVoiceControlBar } from "../../src/components/voice/RoomVoiceControl
 import { useRoomThemeStore } from "../../src/store/roomThemeStore";
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
-import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones, ShieldAlert, Mic2 } from "lucide-react-native";
+import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones, ShieldAlert, Mic2, UserPlus } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
 import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
@@ -372,6 +372,14 @@ export default function RoomScreen() {
           </View>
         </View>
         <ThemeToggleButton />
+        <TouchableOpacity
+          style={[styles.headerInviteBtn, { backgroundColor: palette.accent }]}
+          onPress={() => setShowShareModal(true)}
+          accessibilityLabel="Add Friends to Room"
+        >
+          <UserPlus size={13} color={palette.accentInverted} style={{ marginRight: 4 }} />
+          <Text style={[styles.headerInviteBtnText, { color: palette.accentInverted }]}>Invite</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} onPress={() => setShowSearchModal(true)}>
           <Plus size={20} color={palette.textPrimary} />
         </TouchableOpacity>
@@ -566,6 +574,14 @@ export default function RoomScreen() {
             <Text style={[styles.quickToolText, { color: palette.textSecondary }]}>
               EQ: {acousticPreset === "CLEARAUDIO" ? "ClearAudio+" : acousticPreset === "WARM_VINYL" ? "Vinyl" : acousticPreset === "BASS_BOOST" ? "Bass" : "Vocal"}
             </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickToolBtn, { backgroundColor: palette.accent, borderColor: palette.accent }]}
+            onPress={() => setShowShareModal(true)}
+          >
+            <UserPlus size={12} color={palette.accentInverted} style={{ marginRight: 4 }} />
+            <Text style={[styles.quickToolText, { color: palette.accentInverted, fontWeight: "700" }]}>+ Add Friends</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1325,6 +1341,18 @@ const styles = StyleSheet.create({
     maxWidth: 880,
     width: "100%",
     alignSelf: "center",
+  },
+  headerInviteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.full,
+    marginRight: 4,
+  },
+  headerInviteBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   iconBtn: {
     width: 40,

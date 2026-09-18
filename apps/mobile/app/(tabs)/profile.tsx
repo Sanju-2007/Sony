@@ -43,6 +43,7 @@ import { usePlaybackStore, DUCKING_PROFILES, DuckingProfileType } from "../../sr
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 import { LoginToListenModal } from "../../src/components/auth/LoginToListenModal";
+import { useChatStore } from "../../src/store/chatStore";
 import { youtubeMusicService } from "../../src/services/youtubeMusicService";
 
 import { useSocialStore, FriendItem, FriendRequestItem } from "../../src/store/socialStore";
@@ -135,13 +136,15 @@ export default function ProfileScreen() {
   const handleAddDirectFriend = (handleOrName: string) => {
     if (!handleOrName.trim()) return;
     const raw = handleOrName.trim().replace(/^@/, "");
-    addFriend({
+    const newFriend: FriendItem = {
       id: "friend-" + Date.now(),
       name: raw.charAt(0).toUpperCase() + raw.slice(1),
       handle: "@" + raw.toLowerCase(),
       avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&fit=crop&q=80",
       status: "ONLINE",
-    });
+    };
+    sendRequest(newFriend);
+    addFriend(newFriend);
     setSearchFriendQuery("");
   };
 
@@ -803,7 +806,10 @@ export default function ProfileScreen() {
                       <TouchableOpacity
                         activeOpacity={0.8}
                         style={[styles.chatFriendBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
-                        onPress={() => router.push("/(tabs)/messages")}
+                        onPress={() => {
+                          useChatStore.getState().startConversation(friend);
+                          router.push("/(tabs)/messages");
+                        }}
                       >
                         <MessageSquare size={14} color={palette.textPrimary} />
                       </TouchableOpacity>
@@ -875,6 +881,53 @@ export default function ProfileScreen() {
                     </View>
                   </View>
                 ))}
+              </View>
+            )}
+
+            {/* Sent Requests Section */}
+            {Object.keys(sentRequests).length > 0 && (
+              <View style={{ marginTop: spacing.lg }}>
+                <Text style={[styles.sectionTitle, { color: palette.textPrimary, fontSize: 13, marginBottom: 8 }]}>
+                  Requests You Sent ({Object.values(sentRequests).length})
+                </Text>
+                <View style={styles.requestsList}>
+                  {Object.values(sentRequests).map((req) => (
+                    <View
+                      key={req.id}
+                      style={[
+                        styles.requestCard,
+                        { backgroundColor: palette.surface, borderColor: palette.borderSubtle },
+                      ]}
+                    >
+                      <Image source={{ uri: req.avatar }} style={styles.friendAvatar} />
+                      <View style={styles.requestInfo}>
+                        <View style={styles.friendNameRow}>
+                          <Text style={[styles.friendName, { color: palette.textPrimary }]}>{req.name}</Text>
+                          <Text style={[styles.friendHandle, { color: palette.textTertiary }]}>{req.handle}</Text>
+                        </View>
+                        <Text style={[styles.mutualText, { color: palette.textTertiary }]}>
+                          Sent {req.sentAt} · Awaiting response
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <View style={[styles.pendingSentBadge, { backgroundColor: palette.card, borderColor: palette.speaking }]}>
+                          <Check size={11} color={palette.speaking} style={{ marginRight: 4 }} />
+                          <Text style={[styles.pendingSentText, { color: palette.speaking }]}>Request Sent</Text>
+                        </View>
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          style={[styles.chatFriendBtn, { backgroundColor: palette.background, borderColor: palette.border, marginLeft: 6 }]}
+                          onPress={() => {
+                            useChatStore.getState().startConversation(req);
+                            router.push("/(tabs)/messages");
+                          }}
+                        >
+                          <MessageSquare size={13} color={palette.textPrimary} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </View>
               </View>
             )}
           </View>
@@ -1420,10 +1473,22 @@ const styles = StyleSheet.create({
   declineBtn: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.04)",
+    borderRadius: radii.full,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  pendingSentBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.full,
+    borderWidth: 1,
+  },
+  pendingSentText: {
+    fontSize: 10,
+    fontWeight: "700",
   },
   emptyCard: {
     alignItems: "center",
