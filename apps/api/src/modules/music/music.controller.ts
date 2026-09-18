@@ -1,10 +1,8 @@
-import { Controller, Get, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Param } from '@nestjs/common';
 import { MusicService } from './music.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { MusicProviderType } from '@sony/types';
 
 @Controller('music')
-@UseGuards(JwtAuthGuard)
 export class MusicController {
   constructor(private readonly musicService: MusicService) {}
 
@@ -14,6 +12,23 @@ export class MusicController {
     @Query('provider') provider?: MusicProviderType,
   ) {
     return this.musicService.search(q, provider);
+  }
+
+  @Get('recommendations')
+  async getRecommendations(
+    @Query('artist') artist?: string,
+    @Query('title') title?: string,
+  ) {
+    return this.musicService.getRecommendations(artist, title);
+  }
+
+  @Get('lyrics')
+  async getLyrics(
+    @Query('title') title: string,
+    @Query('artist') artist?: string,
+    @Query('duration') duration?: number,
+  ) {
+    return this.musicService.getLyrics(title, artist, duration);
   }
 
   @Get(':provider/:trackId')

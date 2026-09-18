@@ -21,7 +21,24 @@ import { useRoomStore } from '../store/roomStore';
 import { usePlaybackStore } from '../store/playbackStore';
 import { useRoomThemeStore } from '../store/roomThemeStore';
 
-const WS_URL = process.env.EXPO_PUBLIC_WS_URL || 'http://localhost:4000/realtime';
+export const getWsUrl = (): string => {
+  if (process.env.EXPO_PUBLIC_WS_URL) {
+    return process.env.EXPO_PUBLIC_WS_URL.replace(/\/$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const { protocol, hostname, port } = window.location;
+    // Standard dev bundler ports
+    if (port === '8081' || port === '19006' || port === '19000') {
+      return `${protocol}//${hostname}:4000/realtime`;
+    }
+    // Production web deployment (e.g. served via reverse proxy or same host)
+    if (port && port !== '80' && port !== '443') {
+      return `${protocol}//${hostname}:4000/realtime`;
+    }
+    return `${protocol}//${hostname}/realtime`;
+  }
+  return 'http://localhost:4000/realtime';
+};
 
 class SocketService {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
@@ -30,7 +47,7 @@ class SocketService {
   connect(token: string) {
     if (this.socket && this.isConnected) return;
 
-    this.socket = io(WS_URL, {
+    this.socket = io(getWsUrl(), {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,

@@ -5,11 +5,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('rooms')
-@UseGuards(JwtAuthGuard)
 export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   async createRoom(@CurrentUser('id') userId: string, @Body() dto: CreateRoomDto) {
     return this.roomsService.createRoom(userId, dto);
   }
@@ -28,11 +28,13 @@ export class RoomsController {
   }
 
   @Post(':id/join')
+  @UseGuards(JwtAuthGuard)
   async joinRoom(@Param('id') id: string, @CurrentUser('id') userId: string, @Body() dto: JoinRoomDto) {
     return this.roomsService.joinRoom(id, userId, dto);
   }
 
   @Post(':id/leave')
+  @UseGuards(JwtAuthGuard)
   async leaveRoom(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.roomsService.leaveRoom(id, userId);
   }

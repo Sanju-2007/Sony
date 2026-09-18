@@ -15,6 +15,8 @@
     "@sony/audio-ducking": "*",
     "@sony/music-core": "*",
     "@sony/types": "*",
+    "@types/crypto-js": "^4.2.2",
+    "crypto-js": "^4.2.0",
     "expo": "~51.0.38",
     "expo-constants": "~16.0.2",
     "expo-haptics": "~13.0.1",

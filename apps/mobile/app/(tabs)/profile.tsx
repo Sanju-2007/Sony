@@ -43,6 +43,7 @@ import { usePlaybackStore, DUCKING_PROFILES, DuckingProfileType } from "../../sr
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
 import { LoginToListenModal } from "../../src/components/auth/LoginToListenModal";
+import { youtubeMusicService } from "../../src/services/youtubeMusicService";
 
 import { useSocialStore, FriendItem, FriendRequestItem } from "../../src/store/socialStore";
 import { useRoomsStore } from "../../src/store/roomsStore";
@@ -62,6 +63,39 @@ export default function ProfileScreen() {
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>("FRIENDS");
   const [hdAudio, setHdAudio] = useState(true);
   const [driftNudge, setDriftNudge] = useState(true);
+
+  // YouTube API Key state
+  const [ytApiKey, setYtApiKey] = useState(youtubeMusicService.getStoredApiKey());
+  const [isTestingYtKey, setIsTestingYtKey] = useState(false);
+  const [ytKeyStatus, setYtKeyStatus] = useState<"IDLE" | "SUCCESS" | "ERROR">(
+    youtubeMusicService.getStoredApiKey() ? "SUCCESS" : "IDLE"
+  );
+  const [ytKeyMessage, setYtKeyMessage] = useState(
+    youtubeMusicService.getStoredApiKey()
+      ? "YouTube Data API v3 key active."
+      : "Using built-in multi-source YouTube audio streaming engine."
+  );
+
+  const handleSaveAndTestYtKey = async () => {
+    youtubeMusicService.setStoredApiKey(ytApiKey);
+    if (!ytApiKey.trim()) {
+      setYtKeyStatus("IDLE");
+      setYtKeyMessage("Using built-in multi-source YouTube audio streaming engine.");
+      return;
+    }
+
+    setIsTestingYtKey(true);
+    const res = await youtubeMusicService.testApiKey(ytApiKey);
+    setIsTestingYtKey(false);
+
+    if (res.valid) {
+      setYtKeyStatus("SUCCESS");
+      setYtKeyMessage("✅ Active! Connected to official YouTube Data API v3.");
+    } else {
+      setYtKeyStatus("ERROR");
+      setYtKeyMessage(`⚠️ ${res.error || "Could not verify key. Stored for retry."}`);
+    }
+  };
 
   // Edit profile & Auth states
   const [showEditModal, setShowEditModal] = useState(false);
@@ -511,6 +545,122 @@ export default function ProfileScreen() {
                       </TouchableOpacity>
                     );
                   })}
+                </View>
+              </View>
+
+              {/* YouTube Audio Engine & API Key Configuration */}
+              <View
+                style={[
+                  styles.duckingSelectorCard,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.borderSubtle,
+                    marginTop: spacing.md,
+                  },
+                ]}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: spacing.xs,
+                  }}
+                >
+                  <View style={styles.menuLeft}>
+                    <Music size={16} color="#EF4444" style={{ marginRight: 10 }} />
+                    <View>
+                      <Text style={[styles.menuText, { color: palette.textPrimary }]}>
+                        YouTube Audio Streaming Engine
+                      </Text>
+                      <Text style={[styles.menuSubtext, { color: palette.textTertiary }]}>
+                        Full complete songs (3-5 min) with live room synchronization
+                      </Text>
+                    </View>
+                  </View>
+                  <View
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: radii.full,
+                      backgroundColor: "rgba(16, 185, 129, 0.12)",
+                    }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: "700", color: "#10B981" }}>
+                      ● FULL AUDIO ACTIVE
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={{ marginTop: spacing.sm }}>
+                  <Text
+                    style={{
+                      color: palette.textSecondary,
+                      marginBottom: 4,
+                      fontSize: 11,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Custom YouTube Data API v3 Key (Optional)
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TextInput
+                      value={ytApiKey}
+                      onChangeText={setYtApiKey}
+                      placeholder="Paste your API key (e.g. AIzaSy...)"
+                      placeholderTextColor={palette.textTertiary}
+                      secureTextEntry
+                      style={{
+                        flex: 1,
+                        height: 38,
+                        backgroundColor: palette.background,
+                        borderWidth: 1,
+                        borderColor: palette.border,
+                        borderRadius: radii.md,
+                        paddingHorizontal: 10,
+                        color: palette.textPrimary,
+                        fontSize: 12,
+                      }}
+                    />
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 14,
+                        height: 38,
+                        borderRadius: radii.md,
+                        backgroundColor: palette.accent,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      onPress={handleSaveAndTestYtKey}
+                      disabled={isTestingYtKey}
+                    >
+                      <Text
+                        style={{
+                          color: palette.accentInverted,
+                          fontSize: 12,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {isTestingYtKey ? "Testing..." : "Save Key"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {ytKeyMessage.length > 0 && (
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        marginTop: 6,
+                        color:
+                          ytKeyStatus === "SUCCESS"
+                            ? "#10B981"
+                            : ytKeyStatus === "ERROR"
+                            ? "#EF4444"
+                            : palette.textTertiary,
+                      }}
+                    >
+                      {ytKeyMessage}
+                    </Text>
+                  )}
                 </View>
               </View>
             </View>

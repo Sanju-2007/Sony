@@ -74,8 +74,11 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
     webAudioService.setVolume(vol);
   });
 
+  let lastRealAudioUpdate = 0;
+
   webAudioService.subscribe(
     (posMs) => {
+      lastRealAudioUpdate = Date.now();
       set({ positionMs: posMs });
     },
     () => {
@@ -83,11 +86,12 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
     }
   );
 
-  // Background ticker so scrub bar & visualizer are dynamically animated even before audio clicks
+  // Background ticker so scrub bar & visualizer stay animated when running in simulated mode without live audio
   if (typeof setInterval !== "undefined") {
     setInterval(() => {
       const state = get();
-      if (state.isPlaying && state.durationMs > 0) {
+      const isLiveAudioActive = Date.now() - lastRealAudioUpdate < 1500 || webAudioService.isActuallyPlaying();
+      if (!isLiveAudioActive && state.isPlaying && state.durationMs > 0) {
         const nextPos = state.positionMs + 1000;
         if (nextPos >= state.durationMs) {
           state.playNext();

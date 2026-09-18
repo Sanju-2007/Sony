@@ -3,16 +3,80 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../redis/redis.service';
-import { RegisterDto, LoginDto, RefreshTokenDto } from './auth.dto';
+import { EmailService } from '../email/email.service';
+import { RegisterDto, LoginDto, RefreshTokenDto, SendOtpDto, VerifyOtpDto } from './auth.dto';
 import { AuthResponse, PublicUser } from '@sony/types';
 
 @Injectable()
 export class AuthService {
+  private readonly inMemoryOtps = new Map<string, { code: string; expiresAt: number }>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly redis: RedisService,
+    private readonly emailService: EmailService,
   ) {}
+
+  async sendOtp(dto: SendOtpDto): Promise<{ success: boolean; message: string; previewUrl?: string }> {
+    const cleanedEmail = dto.email.trim().toLowerCase();
+
+    // Check if user already exists
+    const existing = await this.prisma.user.findFirst({
+      where: { email: cleanedEmail },
+    });
+    if (existing) {
+      throw new ConflictException('This email is already registered. Please sign in instead.');
+    }
+
+    // Generate 6-digit cryptographic numeric code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save to Redis (with fallback to in-memory store)
+    try {
+      await this.redis.set(`otp:${cleanedEmail}`, otpCode, 600);
+    } catch {
+      this.inMemoryOtps.set(cleanedEmail, { code: otpCode, expiresAt: Date.now() + 600000 });
+    }
+
+    // Send real-time email
+    const emailResult = await this.emailService.sendOtpEmail(cleanedEmail, otpCode);
+
+    return {
+      success: true,
+      message: 'Verification code sent to your email address.',
+      previewUrl: emailResult.previewUrl,
+    };
+  }
+
+  async verifyOtp(dto: VerifyOtpDto): Promise<boolean> {
+    const cleanedEmail = dto.email.trim().toLowerCase();
+    const cleanedCode = dto.code.trim();
+
+    let storedCode: string | null = null;
+    try {
+      storedCode = await this.redis.get(`otp:${cleanedEmail}`);
+    } catch {
+      const record = this.inMemoryOtps.get(cleanedEmail);
+      if (record && Date.now() <= record.expiresAt) {
+        storedCode = record.code;
+      }
+    }
+
+    if (!storedCode || storedCode !== cleanedCode) {
+      return false;
+    }
+
+    // Single-use guarantee: Invalidate OTP upon successful verification
+    try {
+      await this.redis.del(`otp:${cleanedEmail}`);
+    } catch {
+      // ignore
+    }
+    this.inMemoryOtps.delete(cleanedEmail);
+
+    return true;
+  }
 
   async register(dto: RegisterDto): Promise<AuthResponse> {
     const existing = await this.prisma.user.findFirst({

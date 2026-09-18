@@ -39,7 +39,12 @@ export default function TabLayout() {
           ]}
         >
           {/* Brand */}
-          <View style={styles.brandRow}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push("/")}
+            style={styles.brandRow}
+            accessibilityLabel="Replay opening intro"
+          >
             <View style={[styles.logoBadge, { backgroundColor: palette.accent }]}>
               <Radio size={18} color={palette.accentInverted} />
             </View>
@@ -47,7 +52,7 @@ export default function TabLayout() {
               <Text style={[styles.brandTitle, { color: palette.textPrimary }]}>SONY MUSIC</Text>
               <Text style={[styles.brandSubtitle, { color: palette.textTertiary }]}>Social Listening</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* Quick Create Room */}
           <TouchableOpacity

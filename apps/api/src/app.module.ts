@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './database/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { EmailModule } from './modules/email/email.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
@@ -18,6 +19,7 @@ import { HealthModule } from './modules/health/health.module';
   imports: [
     PrismaModule,
     RedisModule,
+    EmailModule,
     AuthModule,
     UsersModule,
     RoomsModule,

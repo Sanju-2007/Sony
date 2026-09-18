@@ -7,7 +7,24 @@ import {
   MusicProviderType,
 } from '@sony/types';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+export const getApiBaseUrl = (): string => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const { protocol, hostname, port } = window.location;
+    // Local dev metro/bundler ports
+    if (port === '8081' || port === '19006' || port === '19000') {
+      return `${protocol}//${hostname}:4000/api/v1`;
+    }
+    // Production web deployment (e.g. served via reverse proxy or same host)
+    if (port && port !== '80' && port !== '443') {
+      return `${protocol}//${hostname}:4000/api/v1`;
+    }
+    return `${protocol}//${hostname}/api/v1`;
+  }
+  return 'http://localhost:4000/api/v1';
+};
 
 class ApiClient {
   private token: string | null = null;
@@ -16,8 +33,16 @@ class ApiClient {
     this.token = token;
   }
 
+  getToken(): string | null {
+    return this.token;
+  }
+
+  private getBaseUrl(): string {
+    return getApiBaseUrl();
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = `${this.getBaseUrl()}${endpoint}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -41,7 +66,21 @@ class ApiClient {
   }
 
   // AUTH
-  async register(data: { username: string; email: string; password: string; displayName: string }): Promise<AuthResponse> {
+  async sendOtp(email: string): Promise<{ success: boolean; message: string; previewUrl?: string }> {
+    return this.request<{ success: boolean; message: string; previewUrl?: string }>('/auth/otp/send', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async verifyOtp(email: string, code: string): Promise<{ success: boolean; valid: boolean }> {
+    return this.request<{ success: boolean; valid: boolean }>('/auth/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+  }
+
+  async register(data: { username: string; email: string; password: string; displayName: string; otp?: string }): Promise<AuthResponse> {
     return this.request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -95,6 +134,13 @@ class ApiClient {
     const params = new URLSearchParams({ q: query });
     if (provider) params.append('provider', provider);
     return this.request<TrackMetadata[]>(`/music/search?${params.toString()}`);
+  }
+
+  async getRecommendations(artist?: string, title?: string): Promise<TrackMetadata[]> {
+    const params = new URLSearchParams();
+    if (artist) params.append('artist', artist);
+    if (title) params.append('title', title);
+    return this.request<TrackMetadata[]>(`/music/recommendations?${params.toString()}`);
   }
 
   // FRIENDS

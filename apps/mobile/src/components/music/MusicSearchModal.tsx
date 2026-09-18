@@ -11,36 +11,24 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
-import { Search, X, Play, Plus, Check, Music2, Globe, Sparkles } from "lucide-react-native";
+import { Search, X, Play, Plus, Check, Music2, Globe, Sparkles, RotateCcw } from "lucide-react-native";
 import { TrackMetadata } from "@sony/types";
 import { typography, colors, spacing, radii } from "../../theme/tokens";
 import { useThemeStore } from "../../store/themeStore";
+import {
+  freeMusicService,
+  FEATURED_FULL_AUDIO_TRACKS,
+} from "../../services/freeMusicService";
+import {
+  youtubeMusicService,
+  CURATED_YOUTUBE_TRACKS,
+} from "../../services/youtubeMusicService";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export const CATALOG_TRACKS: TrackMetadata[] = [
-  {
-    id: "track-blinding-05",
-    provider: "SPOTIFY",
-    providerTrackId: "spotify-blinding-lights",
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    album: "After Hours",
-    artworkUrl: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&fit=crop&q=80",
-    durationMs: 200000,
-    streamUrl: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c7a73cbd.mp3?filename=electronic-future-beats-117997.mp3",
-  },
-  {
-    id: "track-starboy-06",
-    provider: "SPOTIFY",
-    providerTrackId: "spotify-starboy",
-    title: "Starboy",
-    artist: "The Weeknd ft. Daft Punk",
-    album: "Starboy",
-    artworkUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&fit=crop&q=80",
-    durationMs: 230000,
-    streamUrl: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=chill-abstract-intention-12099.mp3",
-  },
+  ...FEATURED_FULL_AUDIO_TRACKS,
+  ...CURATED_YOUTUBE_TRACKS,
   {
     id: "track-lofi-02",
     provider: "LICENSED_CATALOG",
@@ -201,17 +189,45 @@ export function MusicSearchModal({
 }: MusicSearchModalProps) {
   const { palette, isDark } = useThemeStore();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState<string>("All");
   const [addedTrackIds, setAddedTrackIds] = useState<Record<string, boolean>>({});
 
-  // Live iTunes search state
+  // Dynamic recommendations & last played track persistence
+  const [lastPlayedTrack, setLastPlayedTrack] = useState<TrackMetadata | null>(() => {
+    return freeMusicService.getLastPlayedTrack();
+  });
+  const [recommendations, setRecommendations] = useState<TrackMetadata[]>([]);
+  const [isLoadingRecs, setIsLoadingRecs] = useState<boolean>(false);
+
+  // Live YouTube audio search state
   const [liveResults, setLiveResults] = useState<TrackMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const debounceTimerRef = useRef<any>(null);
 
-  const genres = ["All", "Pop", "Electronic", "Ambient", "Lo-Fi", "Acoustic"];
+  // Sync lastPlayedTrack & load dynamic recommendations when modal opens
+  useEffect(() => {
+    if (visible) {
+      const stored = freeMusicService.getLastPlayedTrack();
+      setLastPlayedTrack(stored);
+      if (stored) {
+        setIsLoadingRecs(true);
+        freeMusicService
+          .getRecommendations(stored.artist, stored.title)
+          .then((recs) => {
+            setRecommendations(recs || []);
+          })
+          .catch((err) => {
+            console.warn("Failed to load recommendations:", err);
+          })
+          .finally(() => {
+            setIsLoadingRecs(false);
+          });
+      } else {
+        setRecommendations([]);
+      }
+    }
+  }, [visible]);
 
-  // Debounced iTunes Search Query
+  // Debounced search query
   useEffect(() => {
     const q = searchQuery.trim();
     if (!q) {
@@ -227,35 +243,31 @@ export function MusicSearchModal({
     setIsLoading(true);
     debounceTimerRef.current = setTimeout(async () => {
       try {
-        const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
-          q
-        )}&entity=song&limit=30`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Search failed");
-        const data = await res.json();
-
-        if (data.results && Array.isArray(data.results)) {
-          const mapped: TrackMetadata[] = data.results.map((item: any) => ({
-            id: `itunes-${item.trackId}`,
-            provider: "APPLE_MUSIC",
-            providerTrackId: String(item.trackId),
-            title: item.trackName || "Untitled Track",
-            artist: item.artistName || "Unknown Artist",
-            album: item.collectionName || item.trackName || "Single",
-            artworkUrl: item.artworkUrl100
-              ? item.artworkUrl100.replace("100x100bb", "600x600bb")
-              : "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&fit=crop&q=80",
-            durationMs: item.trackTimeMillis || 180000,
-            streamUrl: item.previewUrl,
-          }));
-          setLiveResults(mapped);
+        // 1. Search YouTube for full video audio (zero ads/video frames)
+        const audioResults = await freeMusicService.searchTracks(q);
+        if (audioResults && audioResults.length > 0) {
+          setLiveResults(audioResults);
+          setIsLoading(false);
+          return;
         }
       } catch (err) {
-        console.warn("iTunes search query failed, using local filter:", err);
+        console.warn("Full YouTube audio search error:", err);
+      }
+
+      // 2. Secondary fallback to direct YouTube
+      try {
+        const ytResults = await youtubeMusicService.searchTracks(q);
+        if (ytResults && ytResults.length > 0) {
+          setLiveResults(ytResults);
+          setIsLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Direct YouTube search fallback error:", err);
       } finally {
         setIsLoading(false);
       }
-    }, 350);
+    }, 280);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -264,38 +276,26 @@ export function MusicSearchModal({
     };
   }, [searchQuery]);
 
-  // Combined tracks: live results take priority if query is present
+  const isSearching = searchQuery.trim().length > 0;
+
+  // Display tracks rule:
+  // 1. If actively searching: show live YouTube results
+  // 2. If NOT searching:
+  //    - If user has played a song previously: recommend based on that song!
+  //    - If first search (no last played song): REMOVE ALL SUGGESTIONS (return empty list)
   const displayTracks = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (q && liveResults.length > 0) {
+    if (isSearching) {
       return liveResults;
     }
-
-    return CATALOG_TRACKS.filter((t) => {
-      const matchesText =
-        !q ||
-        t.title.toLowerCase().includes(q) ||
-        t.artist.toLowerCase().includes(q) ||
-        t.album.toLowerCase().includes(q);
-
-      if (!matchesText) return false;
-
-      if (selectedGenre === "All") return true;
-      if (selectedGenre === "Ambient")
-        return t.title.includes("Ambient") || t.album.includes("Presence");
-      if (selectedGenre === "Lo-Fi")
-        return t.title.includes("Rain") || t.title.includes("Frost");
-      if (selectedGenre === "Electronic")
-        return t.title.includes("Solar") || t.artist.includes("Aura") || t.artist.includes("Daft");
-      if (selectedGenre === "Acoustic")
-        return t.title.includes("Paper") || t.title.includes("Boats") || t.artist.includes("Arijit");
-      if (selectedGenre === "Pop")
-        return t.provider === "SPOTIFY";
-      return true;
-    });
-  }, [searchQuery, liveResults, selectedGenre]);
+    if (lastPlayedTrack) {
+      return recommendations;
+    }
+    return [];
+  }, [isSearching, liveResults, lastPlayedTrack, recommendations]);
 
   const handleQueueTrack = (track: TrackMetadata) => {
+    freeMusicService.setLastPlayedTrack(track);
+    setLastPlayedTrack(track);
     if (onAddToQueue) {
       onAddToQueue(track);
     }
@@ -306,10 +306,25 @@ export function MusicSearchModal({
   };
 
   const handlePlayNow = (track: TrackMetadata) => {
+    freeMusicService.setLastPlayedTrack(track);
+    setLastPlayedTrack(track);
     if (onSelectTrack) {
       onSelectTrack(track);
       onClose();
     }
+  };
+
+  const handleResetHistory = () => {
+    freeMusicService.setLastPlayedTrack(null);
+    setLastPlayedTrack(null);
+    setRecommendations([]);
+  };
+
+  const formatDuration = (ms: number) => {
+    const totalSec = Math.floor((ms || 180000) / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -320,10 +335,12 @@ export function MusicSearchModal({
           <View style={styles.modalHeader}>
             <View>
               <View style={styles.badgeRow}>
-                <Globe size={13} color="#059669" style={{ marginRight: 5 }} />
-                <Text style={styles.badgeText}>GLOBAL MUSIC SEARCH (MILLIONS OF SONGS)</Text>
+                <Music2 size={13} color="#10B981" style={{ marginRight: 5 }} />
+                <Text style={[styles.badgeText, { color: "#10B981" }]}>
+                  YOUTUBE AUDIO ENGINE · PURE SOUND
+                </Text>
               </View>
-              <Text style={[styles.modalTitle, { color: palette.textPrimary }]}>Search & Queue Songs</Text>
+              <Text style={[styles.modalTitle, { color: palette.textPrimary }]}>Search YouTube Audio</Text>
             </View>
             <TouchableOpacity
               style={[styles.closeBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
@@ -339,7 +356,7 @@ export function MusicSearchModal({
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search any artist, song, or album (e.g. Taylor Swift, Drake, Coldplay)..."
+              placeholder="Search any song, artist, or band (e.g. Taylor Swift, Coldplay)..."
               placeholderTextColor={palette.textTertiary}
               style={[styles.searchInput, { color: palette.textPrimary }]}
               autoFocus
@@ -353,44 +370,68 @@ export function MusicSearchModal({
             ) : null}
           </View>
 
-          {/* Genre Filters (when not actively searching live) */}
-          {!searchQuery.trim() && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.genreRow}
-            >
-              {genres.map((genre) => {
-                const isSelected = selectedGenre === genre;
-                return (
-                  <TouchableOpacity
-                    key={genre}
-                    style={[
-                      styles.genrePill,
-                      {
-                        backgroundColor: isSelected ? palette.accent : palette.background,
-                        borderColor: isSelected ? palette.accent : palette.border,
-                      },
-                    ]}
-                    onPress={() => setSelectedGenre(genre)}
-                  >
-                    <Text
-                      style={[
-                        styles.genreText,
-                        { color: isSelected ? palette.accentInverted : palette.textSecondary },
-                      ]}
-                    >
-                      {genre}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+          {/* Recommendation Banner (when not searching and lastPlayedTrack exists) */}
+          {!isSearching && lastPlayedTrack && (
+            <View style={[styles.recBanner, { backgroundColor: palette.background, borderColor: palette.borderSubtle }]}>
+              <View style={styles.recBannerLeft}>
+                <View style={styles.recBadgeRow}>
+                  <Sparkles size={13} color="#10B981" style={{ marginRight: 5 }} />
+                  <Text style={[styles.recBadgeText, { color: "#10B981" }]}>RECOMMENDED FOR YOU</Text>
+                </View>
+                <Text style={[styles.recBannerTitle, { color: palette.textPrimary }]} numberOfLines={1}>
+                  Based on "{lastPlayedTrack.title}" by {lastPlayedTrack.artist}
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.recResetBtn, { borderColor: palette.borderSubtle }]}
+                onPress={handleResetHistory}
+              >
+                <RotateCcw size={11} color={palette.textTertiary} style={{ marginRight: 4 }} />
+                <Text style={[styles.recResetText, { color: palette.textTertiary }]}>Reset</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
-          {/* Track Results List */}
+          {/* Track Results / Empty States / Recommendations List */}
           <ScrollView contentContainerStyle={styles.tracksList} showsVerticalScrollIndicator={false}>
-            {displayTracks.length === 0 && !isLoading ? (
+            {/* Case 1: First Search (No search query & no last played song) -> REMOVE ALL SUGGESTIONS */}
+            {!isSearching && !lastPlayedTrack ? (
+              <View style={styles.firstSearchContainer}>
+                <View style={[styles.firstSearchIconCircle, { backgroundColor: palette.background, borderColor: palette.border }]}>
+                  <Search size={32} color={palette.accent} />
+                </View>
+                <Text style={[styles.firstSearchTitle, { color: palette.textPrimary }]}>
+                  Search Any YouTube Song
+                </Text>
+                <Text style={[styles.firstSearchSubtitle, { color: palette.textSecondary }]}>
+                  Type any song, artist, or band to stream full audio with zero ads or video frames.
+                </Text>
+                <View style={[styles.firstSearchTipBox, { backgroundColor: palette.background, borderColor: palette.borderSubtle }]}>
+                  <Sparkles size={15} color="#10B981" style={{ marginRight: 8 }} />
+                  <Text style={[styles.firstSearchTipText, { color: palette.textTertiary }]}>
+                    Initial suggestions removed for your first search. Once you play a track, we'll recommend similar music here next time!
+                  </Text>
+                </View>
+              </View>
+            ) : !isSearching && isLoadingRecs ? (
+              /* Case 2: Loading recommendations */
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={palette.accent} style={{ marginBottom: 10 }} />
+                <Text style={[styles.loadingText, { color: palette.textSecondary }]}>
+                  Curating recommendations based on {lastPlayedTrack?.artist || "recent song"}...
+                </Text>
+              </View>
+            ) : isSearching && isLoading ? (
+              /* Case 3: Searching live */
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={palette.accent} style={{ marginBottom: 10 }} />
+                <Text style={[styles.loadingText, { color: palette.textSecondary }]}>
+                  Searching YouTube Audio...
+                </Text>
+              </View>
+            ) : displayTracks.length === 0 ? (
+              /* Case 4: No results found */
               <View style={styles.emptyContainer}>
                 <Music2 size={36} color={palette.textTertiary} style={{ marginBottom: 12 }} />
                 <Text style={[styles.emptyTitle, { color: palette.textPrimary }]}>No tracks found</Text>
@@ -399,8 +440,12 @@ export function MusicSearchModal({
                 </Text>
               </View>
             ) : (
+              /* Case 5: Track List */
               displayTracks.map((track) => {
                 const isAdded = !!addedTrackIds[track.id];
+                const isRec = !isSearching && !!lastPlayedTrack;
+                const durationStr = formatDuration(track.durationMs);
+
                 return (
                   <View
                     key={track.id}
@@ -428,14 +473,16 @@ export function MusicSearchModal({
                         <Text
                           style={[
                             styles.metaBadge,
-                            { backgroundColor: palette.background, color: palette.textTertiary },
+                            {
+                              backgroundColor: isRec
+                                ? "rgba(16, 185, 129, 0.12)"
+                                : "rgba(239, 68, 68, 0.10)",
+                              color: isRec ? "#10B981" : "#EF4444",
+                              fontWeight: "700",
+                            },
                           ]}
                         >
-                          {track.provider === "APPLE_MUSIC"
-                            ? "Hi-Res Preview"
-                            : track.provider === "SPOTIFY"
-                            ? "Spotify Master"
-                            : "Licensed Studio"}
+                          {isRec ? `✨ Recommended · ${durationStr}` : `YouTube Audio · ${durationStr}`}
                         </Text>
                       </View>
                     </View>
@@ -548,24 +595,102 @@ const styles = StyleSheet.create({
     // @ts-ignore
     outlineStyle: "none",
   },
-  genreRow: {
+  recBanner: {
     flexDirection: "row",
-    paddingBottom: spacing.sm,
-    gap: 8,
-  },
-  genrePill: {
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: radii.full,
+    paddingVertical: 12,
+    borderRadius: 14,
     borderWidth: 1,
+    marginBottom: spacing.sm,
   },
-  genreText: {
+  recBannerLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  recBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  recBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+  recBannerTitle: {
     fontSize: 12,
     fontWeight: "600",
   },
+  recResetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  recResetText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
   tracksList: {
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
     paddingBottom: 40,
+  },
+  firstSearchContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 50,
+    paddingHorizontal: spacing.md,
+  },
+  firstSearchIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  firstSearchTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  firstSearchSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    maxWidth: 320,
+    marginBottom: 20,
+  },
+  firstSearchTipBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    maxWidth: 340,
+  },
+  firstSearchTipText: {
+    fontSize: 11,
+    fontWeight: "500",
+    flex: 1,
+    lineHeight: 16,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 45,
+  },
+  loadingText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   trackCard: {
     flexDirection: "row",

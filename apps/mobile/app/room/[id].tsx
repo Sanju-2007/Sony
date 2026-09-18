@@ -14,16 +14,19 @@ import { AIDJAnnouncementBanner } from "../../src/components/room/AIDJAnnounceme
 import { AIDJSettingsModal } from "../../src/components/room/AIDJSettingsModal";
 import { MilestonesModal } from "../../src/components/room/MilestonesModal";
 import { SpatialAudioStageModal } from "../../src/components/voice/SpatialAudioStageModal";
+import { SingTogetherModal } from "../../src/components/room/SingTogetherModal";
+import { SingTogetherInviteModal } from "../../src/components/room/SingTogetherInviteModal";
+import { RoomVoiceControlBar } from "../../src/components/voice/RoomVoiceControlBar";
 import { useRoomThemeStore } from "../../src/store/roomThemeStore";
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
-import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones, ShieldAlert } from "lucide-react-native";
+import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones, ShieldAlert, Mic2 } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
 import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
 import { HostModerationModal } from "../../src/components/room/HostModerationModal";
 import { ReportModal } from "../../src/components/moderation/ReportModal";
-import { ModerationActionType, SuperReactionType, SuperReactionPayload } from "@sony/types";
+import { ModerationActionType, SuperReactionType, SuperReactionPayload, ReactionBurstPayload, ChatMessageDto } from "@sony/types";
 import React, { useState, useEffect } from "react";
 
 import {
@@ -123,6 +126,7 @@ export default function RoomScreen() {
     members,
     messages,
     reactions,
+    addReaction,
     removeReaction,
     activeSuperReaction,
     setSuperReaction,
@@ -130,6 +134,12 @@ export default function RoomScreen() {
     setActiveAnnouncement,
     isVoiceMuted,
     toggleMute,
+    isSingTogetherActive,
+    singTogetherParticipants,
+    activeSingTogetherInvite,
+    joinSingTogether,
+    leaveSingTogether,
+    dismissSingTogetherInvite,
   } = useRoomStore();
 
   // If entering a room that exists in roomsStore, initialize room and starting track
@@ -180,6 +190,7 @@ export default function RoomScreen() {
   const [sleepRemainingSeconds, setSleepRemainingSeconds] = useState<number | null>(null);
   const [acousticPreset, setAcousticPreset] = useState<AcousticPresetId>("CLEARAUDIO");
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showSingTogetherModal, setShowSingTogetherModal] = useState(false);
   const { kickUserFromRoom } = useModerationStore();
 
 
@@ -227,7 +238,29 @@ export default function RoomScreen() {
     };
   }, [roomId, token]);
 
-  const sendReaction = (emoji: string) => {
+  const sendReaction = (emoji: string, event?: any) => {
+    let originX: number | undefined;
+    let originY: number | undefined;
+
+    if (event?.nativeEvent?.pageX !== undefined && event?.nativeEvent?.pageY !== undefined) {
+      originX = event.nativeEvent.pageX;
+      originY = event.nativeEvent.pageY;
+    }
+
+    const payload: ReactionBurstPayload = {
+      roomId,
+      emoji,
+      userId: user?.id || "user-me",
+      userDisplayName: user?.displayName || "You",
+      timestamp: Date.now() + Math.random(),
+      originX,
+      originY,
+    };
+
+    // 1. Immediately trigger rich floating reaction cluster locally
+    addReaction(payload);
+
+    // 2. Broadcast to room participants via WebSocket
     socketService.sendReaction(roomId, emoji);
   };
 
@@ -260,11 +293,13 @@ export default function RoomScreen() {
     setChatInput("");
   };
 
-  const handleSendVoiceNote = () => {
-    const durationSec = Math.floor(Math.random() * 5) + 3;
-    const randomWave = Array.from({ length: 14 }, () =>
-      Number((Math.random() * 0.7 + 0.3).toFixed(2))
-    );
+  const handleSendVoiceNote = (recordedSec?: number, customWave?: number[]) => {
+    const durationSec = recordedSec || Math.floor(Math.random() * 5) + 3;
+    const randomWave = customWave && customWave.length > 0
+      ? customWave
+      : Array.from({ length: 14 }, () =>
+          Number((Math.random() * 0.7 + 0.3).toFixed(2))
+        );
     const currentUser = user || { id: "user-me", username: "me", displayName: "You" };
     addMessage({
       id: "voice-" + Date.now(),
@@ -395,6 +430,7 @@ export default function RoomScreen() {
 
         {showLyrics ? (
           <SynchronizedLyrics
+            track={currentTrack}
             trackId={currentTrack?.id}
             positionMs={positionMs}
             onSeek={handleSeek}
@@ -429,6 +465,33 @@ export default function RoomScreen() {
             {currentTrack?.artist || "Tap to select music from library"}
           </Text>
         </TouchableOpacity>
+
+        {/* Sing Together Active Live Banner */}
+        {isSingTogetherActive && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setShowSingTogetherModal(true)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              alignSelf: "center",
+              backgroundColor: "rgba(244, 63, 94, 0.16)",
+              borderColor: "rgba(244, 63, 94, 0.4)",
+              borderWidth: 1,
+              borderRadius: 20,
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              marginBottom: 10,
+              gap: 6,
+            }}
+          >
+            <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#F43F5E" }} />
+            <Text style={{ color: "#F43F5E", fontSize: 11, fontWeight: "700", letterSpacing: 0.3 }}>
+              SING TOGETHER ACTIVE · {singTogetherParticipants.length} in Chorus (Tap to View)
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Real-time Frequency Spectrum Visualizer */}
         <AudioSpectrumVisualizer
@@ -713,8 +776,9 @@ export default function RoomScreen() {
           {["🔥", "❤️", "🙌", "✨", "⚡️", "🎧"].map((emoji) => (
             <TouchableOpacity
               key={emoji}
+              activeOpacity={0.6}
               style={[styles.reactionBtn, { backgroundColor: palette.surface, borderColor: palette.borderSubtle }]}
-              onPress={() => sendReaction(emoji)}
+              onPress={(e) => sendReaction(emoji, e)}
             >
               <Text style={styles.reactionText}>{emoji}</Text>
             </TouchableOpacity>
@@ -792,7 +856,7 @@ export default function RoomScreen() {
             <View style={[styles.chatInputRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <TouchableOpacity
                 style={{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", marginRight: 6, backgroundColor: palette.background }}
-                onPress={handleSendVoiceNote}
+                onPress={() => handleSendVoiceNote()}
                 accessibilityLabel="Send voice note"
               >
                 <Mic size={14} color={palette.speaking} />
@@ -1045,26 +1109,13 @@ export default function RoomScreen() {
           </View>
         )}
 
-        {/* Push to Talk / Sing Together Button */}
-        <View style={styles.pushToTalkSection}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={[
-              styles.talkButton,
-              {
-                backgroundColor: isVoiceActive ? palette.duckingIndicator : palette.surface,
-                borderColor: isVoiceActive ? palette.duckingIndicator : palette.border,
-              },
-            ]}
-            onPressIn={() => setVoiceActive(true)}
-            onPressOut={() => setVoiceActive(false)}
-          >
-            <Mic size={18} color={isVoiceActive ? "#FFFFFF" : palette.textPrimary} style={{ marginRight: 8 }} />
-            <Text style={[styles.talkText, { color: isVoiceActive ? "#FFFFFF" : palette.textPrimary }]}>
-              {isVoiceActive ? "Singing together · Music ducked to " + Math.round(volume * 100) + "%" : "🎙 Hold to talk / sing together"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Distinct Controls: 1. Sing Together (Chorus Broadcast) & 2. Voice Chat (WhatsApp Voice Note + Stage Mic) */}
+        <RoomVoiceControlBar
+          onSendVoiceMessage={(dur, wave) => handleSendVoiceNote(dur, wave)}
+          onOpenSingTogether={() => setShowSingTogetherModal(true)}
+          isSingTogetherActive={isSingTogetherActive}
+          singTogetherCount={singTogetherParticipants.length}
+        />
       </ScrollView>
 
       {/* Music Search & Queue Modal */}
@@ -1190,6 +1241,30 @@ export default function RoomScreen() {
         visible={showSpatialModal}
         onClose={() => setShowSpatialModal(false)}
         roomId={roomId}
+      />
+
+      {/* Dedicated Sing Together Modal (Chorus Broadcast & Lyrics) */}
+      <SingTogetherModal
+        visible={showSingTogetherModal}
+        onClose={() => setShowSingTogetherModal(false)}
+        onOpenLyrics={() => setShowLyrics(true)}
+      />
+
+      {/* Incoming Sing Together Request Prompt */}
+      <SingTogetherInviteModal
+        visible={!!activeSingTogetherInvite}
+        initiatorName={activeSingTogetherInvite?.initiatorName || "Room Host"}
+        trackTitle={activeSingTogetherInvite?.trackTitle || (currentTrack?.title || "Current Track")}
+        onAccept={() => {
+          const currentUser = user || { id: "user-me", username: "me", displayName: "You" };
+          joinSingTogether({
+            userId: currentUser.id,
+            displayName: currentUser.displayName,
+            avatarUrl: currentUser.avatarUrl,
+          });
+          setVoiceActive(true);
+        }}
+        onDecline={() => dismissSingTogetherInvite()}
       />
     </SafeAreaView>
 

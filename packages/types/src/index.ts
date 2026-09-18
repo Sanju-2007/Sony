@@ -13,6 +13,7 @@ export interface PublicUser {
   avatarUrl?: string | null;
   bio?: string | null;
   isPrivate?: boolean;
+  email?: string | null;
 }
 
 export interface AuthTokens {
@@ -163,6 +164,8 @@ export interface ReactionBurstPayload {
   emoji: string;
   timestamp: number;
   userDisplayName?: string;
+  originX?: number;
+  originY?: number;
 }
 
 // --- VOICE CHAT & AUDIO DUCKING ---
