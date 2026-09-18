@@ -8,7 +8,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Play, Pause, SkipForward, SkipBack, Maximize2, Sliders, Volume2 } from "lucide-react-native";
+import { Play, Pause, SkipForward, SkipBack, Maximize2, Sliders, Volume2, ListMusic } from "lucide-react-native";
 import { usePlaybackStore } from "../../store/playbackStore";
 import { useRoomStore } from "../../store/roomStore";
 import { useThemeStore } from "../../store/themeStore";
@@ -24,7 +24,7 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
   const isDesktop = propIsDesktop ?? width >= 860;
   const { isDark, palette } = useThemeStore();
 
-  const { currentTrack, isPlaying, togglePlay, playNext, positionMs, durationMs } =
+  const { currentTrack, isPlaying, togglePlay, playNext, positionMs, durationMs, queue } =
     usePlaybackStore();
   const { currentRoom } = useRoomStore();
 
@@ -141,6 +141,22 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
             </View>
 
             <TouchableOpacity
+              style={[
+                styles.desktopQueueBtn,
+                {
+                  backgroundColor: queue.length > 0 ? (isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)") : "transparent",
+                  borderColor: palette.border,
+                },
+              ]}
+              onPress={handlePressCard}
+            >
+              <ListMusic size={14} color={queue.length > 0 ? palette.speaking : palette.textSecondary} style={{ marginRight: 4 }} />
+              <Text style={[styles.desktopQueueText, { color: queue.length > 0 ? palette.speaking : palette.textSecondary }]}>
+                Queue ({queue.length})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               activeOpacity={0.8}
               style={[styles.expandRoomBtn, { backgroundColor: palette.accent }]}
               onPress={handlePressCard}
@@ -179,6 +195,18 @@ export function MiniPlayer({ isDesktop: propIsDesktop }: MiniPlayerProps) {
         </View>
 
         <View style={styles.mobileDockActions}>
+          <TouchableOpacity
+            style={[styles.mobileQueueBtn, { borderColor: palette.border }]}
+            onPress={handlePressCard}
+          >
+            <ListMusic size={16} color={queue.length > 0 ? palette.speaking : palette.textSecondary} />
+            {queue.length > 0 && (
+              <View style={[styles.mobileQueueBadge, { backgroundColor: palette.speaking }]}>
+                <Text style={styles.mobileQueueBadgeText}>{queue.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.playPauseBtn, { backgroundColor: palette.accent }]}
             onPress={togglePlay}
@@ -275,6 +303,28 @@ const styles = StyleSheet.create({
   },
   skipBtn: {
     padding: 6,
+  },
+  mobileQueueBtn: {
+    padding: 6,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    position: "relative",
+  },
+  mobileQueueBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 14,
+    height: 14,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  mobileQueueBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 8,
+    fontWeight: "800",
   },
   desktopOuter: {
     position: "absolute",
@@ -373,6 +423,18 @@ const styles = StyleSheet.create({
   syncBadgeText: {
     fontSize: 10,
     fontWeight: "600",
+  },
+  desktopQueueBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.full,
+    borderWidth: 1,
+  },
+  desktopQueueText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: "700",
   },
   expandRoomBtn: {
     flexDirection: "row",

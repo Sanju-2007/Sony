@@ -20,7 +20,7 @@ import { RoomVoiceControlBar } from "../../src/components/voice/RoomVoiceControl
 import { useRoomThemeStore } from "../../src/store/roomThemeStore";
 import { useThemeStore } from "../../src/store/themeStore";
 import { ThemeToggleButton } from "../../src/components/theme/ThemeToggleButton";
-import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones, ShieldAlert, Mic2, UserPlus } from "lucide-react-native";
+import { Moon, Share2, Disc3, CloudRain, Shuffle, Sparkles, Heart, Award, Palette, Headphones, ShieldAlert, Mic2, UserPlus, ListMusic } from "lucide-react-native";
 import { SynchronizedLyrics } from "../../src/components/lyrics/SynchronizedLyrics";
 import { AudioSpectrumVisualizer } from "../../src/components/player/AudioSpectrumVisualizer";
 import { DJSoundboard, SoundEffectItem } from "../../src/components/room/DJSoundboard";
@@ -76,6 +76,7 @@ import { socketService } from "../../src/services/socketService";
 import { useSyncEngine } from "../../src/hooks/useSyncEngine";
 import { useAudioDucking } from "../../src/hooks/useAudioDucking";
 import { MusicSearchModal } from "../../src/components/music/MusicSearchModal";
+import { RoomQueueModal } from "../../src/components/room/RoomQueueModal";
 import { VoiceMessagePlayer } from "../../src/components/voice/VoiceMessagePlayer";
 import { useModerationStore } from "../../src/store/moderationStore";
 
@@ -170,6 +171,7 @@ export default function RoomScreen() {
   const [activeTab, setActiveTab] = useState<"chat" | "voice" | "queue">("chat");
   const [chatInput, setChatInput] = useState("");
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showQueueModal, setShowQueueModal] = useState(false);
   const [hasRaisedHand, setHasRaisedHand] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showModerationModal, setShowModerationModal] = useState(false);
@@ -373,6 +375,16 @@ export default function RoomScreen() {
         </View>
         <ThemeToggleButton />
         <TouchableOpacity
+          style={[styles.headerQueueBtn, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          onPress={() => setShowQueueModal(true)}
+          accessibilityLabel="View Room Queue"
+        >
+          <ListMusic size={13} color={palette.speaking} style={{ marginRight: 4 }} />
+          <Text style={[styles.headerQueueBtnText, { color: palette.textPrimary }]}>
+            Queue ({queue.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.headerInviteBtn, { backgroundColor: palette.accent }]}
           onPress={() => setShowShareModal(true)}
           accessibilityLabel="Add Friends to Room"
@@ -538,11 +550,95 @@ export default function RoomScreen() {
           <TouchableOpacity style={styles.controlBtn} onPress={playNext}>
             <SkipForward size={22} color={palette.textSecondary} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.controlBtn,
+              styles.queueControlBtn,
+              {
+                backgroundColor: queue.length > 0 ? palette.surface : palette.surface,
+                borderColor: queue.length > 0 ? palette.speaking : palette.borderSubtle,
+              },
+            ]}
+            onPress={() => setShowQueueModal(true)}
+            accessibilityLabel="View Room Queue"
+          >
+            <ListMusic size={20} color={queue.length > 0 ? palette.speaking : palette.textSecondary} />
+            {queue.length > 0 && (
+              <View style={[styles.queueBadgeDot, { backgroundColor: palette.speaking }]}>
+                <Text style={styles.queueBadgeDotText}>{queue.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
+        {/* Interactive Up Next / Live Queue Bar */}
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={[
+            styles.upNextBanner,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.borderSubtle,
+            },
+          ]}
+          onPress={() => setShowQueueModal(true)}
+        >
+          <View style={styles.upNextLeft}>
+            {queue.length > 0 && queue[0].track?.artworkUrl ? (
+              <Image source={{ uri: queue[0].track.artworkUrl }} style={styles.upNextThumb} />
+            ) : (
+              <View style={[styles.upNextThumbPlaceholder, { backgroundColor: palette.background }]}>
+                <ListMusic size={15} color={palette.speaking} />
+              </View>
+            )}
+            <View style={styles.upNextInfo}>
+              <View style={styles.upNextLabelRow}>
+                <Text style={[styles.upNextTag, { color: palette.speaking }]}>UP NEXT</Text>
+                <View style={[styles.queueCountPill, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}>
+                  <Text style={[styles.queueCountPillText, { color: palette.textSecondary }]}>
+                    {queue.length} track{queue.length === 1 ? "" : "s"} in queue
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.upNextTitle, { color: palette.textPrimary }]} numberOfLines={1}>
+                {queue.length > 0
+                  ? `${queue[0].track.title} · ${queue[0].track.artist}`
+                  : "Queue is empty · Tap to view & add tracks"}
+              </Text>
+            </View>
+          </View>
 
-        {/* Quick Tools Row 1 (Sleep Timer | Acoustic EQ | Share Room) */}
+          <View style={styles.upNextRight}>
+            <View style={[styles.viewQueuePill, { backgroundColor: palette.accent }]}>
+              <ListMusic size={12} color={palette.accentInverted} style={{ marginRight: 4 }} />
+              <Text style={[styles.viewQueuePillText, { color: palette.accentInverted }]}>Queue</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Quick Tools Row 1 (Queue | Sleep Timer | Acoustic EQ | Add Friends) */}
         <View style={styles.quickToolsRow}>
+          <TouchableOpacity
+            style={[
+              styles.quickToolBtn,
+              {
+                backgroundColor: palette.surface,
+                borderColor: queue.length > 0 ? palette.speaking : palette.borderSubtle,
+              },
+            ]}
+            onPress={() => setShowQueueModal(true)}
+          >
+            <ListMusic size={12} color={queue.length > 0 ? palette.speaking : palette.textSecondary} style={{ marginRight: 4 }} />
+            <Text
+              style={[
+                styles.quickToolText,
+                { color: queue.length > 0 ? palette.speaking : palette.textSecondary, fontWeight: queue.length > 0 ? "700" : "500" },
+              ]}
+            >
+              Queue ({queue.length})
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.quickToolBtn,
@@ -1134,12 +1230,24 @@ export default function RoomScreen() {
         />
       </ScrollView>
 
+      {/* Room Queue Modal */}
+      <RoomQueueModal
+        visible={showQueueModal}
+        onClose={() => setShowQueueModal(false)}
+        onOpenSearch={() => setShowSearchModal(true)}
+        roomId={roomId}
+      />
+
       {/* Music Search & Queue Modal */}
       <MusicSearchModal
         visible={showSearchModal}
         onClose={() => setShowSearchModal(false)}
-        onAddToQueue={(track) => addToQueue(track)}
+        onAddToQueue={(track) => addToQueue(track, user ? { id: user.id, username: user.username, displayName: user.displayName || user.username } : undefined)}
         onSelectTrack={(track) => playTrackImmediate(track)}
+        onOpenQueue={() => {
+          setShowSearchModal(false);
+          setShowQueueModal(true);
+        }}
       />
 
       {/* Host Moderation Modal */}
@@ -1342,6 +1450,19 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
+  headerQueueBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    marginRight: 4,
+  },
+  headerQueueBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
   headerInviteBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1430,6 +1551,102 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: "center",
     justifyContent: "center",
+  },
+  queueControlBtn: {
+    padding: 6,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    position: "relative",
+  },
+  queueBadgeDot: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  queueBadgeDotText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  upNextBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginVertical: 8,
+    maxWidth: 880,
+    width: "100%",
+    alignSelf: "center",
+  },
+  upNextLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 10,
+  },
+  upNextThumb: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+  },
+  upNextThumbPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  upNextInfo: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  upNextLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  upNextTag: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  queueCountPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radii.full,
+  },
+  queueCountPillText: {
+    fontSize: 9,
+    fontWeight: "600",
+  },
+  upNextTitle: {
+    fontSize: typography.sizes.xs,
+    fontWeight: "600",
+  },
+  upNextRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  viewQueuePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.full,
+  },
+  viewQueuePillText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
   listenersSection: {
     marginTop: spacing.md,

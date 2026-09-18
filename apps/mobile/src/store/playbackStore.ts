@@ -51,9 +51,13 @@ interface PlaybackStoreState {
   updateVolume: (vol: number, state: DuckingState) => void;
   setDuckingProfile: (profile: DuckingProfileType) => void;
   addToQueue: (track: TrackMetadata, user?: PublicUser) => void;
+  addTracksToQueue: (tracks: TrackMetadata[], user?: PublicUser) => void;
   removeFromQueue: (itemId: string) => void;
   upvoteQueueItem: (itemId: string) => void;
   playNext: () => void;
+  playQueueItem: (itemId: string) => void;
+  clearQueue: () => void;
+  moveQueueItem: (itemId: string, direction: 'up' | 'down') => void;
   playTrackImmediate: (track: TrackMetadata) => void;
   setCrossfadeDuration: (duration: 0 | 3 | 6 | 9 | 12) => void;
   toggleCrossfadeEnabled: () => void;
@@ -209,6 +213,21 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
       set({ queue: [...currentQueue, newItem] });
     },
 
+    addTracksToQueue: (tracks, user) => {
+      const currentQueue = get().queue;
+      const newItems: ExtendedQueueItem[] = tracks.map((track, i) => ({
+        id: "queue-" + Date.now() + "-" + i + "-" + Math.random().toString(36).substring(2, 6),
+        roomId: get().stateVector?.roomId || "room-1",
+        track,
+        positionOrder: currentQueue.length + i,
+        upvotes: 1,
+        hasUpvoted: true,
+        addedBy: user || { id: "user-preview-1", username: "sanju", displayName: "Sanju" },
+        createdAt: new Date().toISOString(),
+      }));
+      set({ queue: [...currentQueue, ...newItems] });
+    },
+
     removeFromQueue: (itemId) => {
       set((s) => ({ queue: s.queue.filter((q) => q.id !== itemId) }));
     },
@@ -241,6 +260,37 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => {
         isPlaying: true,
         queue: remaining,
       });
+    },
+
+    playQueueItem: (itemId) => {
+      const currentQueue = get().queue;
+      const targetIndex = currentQueue.findIndex((q) => q.id === itemId);
+      if (targetIndex === -1) return;
+      const targetItem = currentQueue[targetIndex];
+      const remaining = currentQueue.filter((_, idx) => idx !== targetIndex);
+      webAudioService.playTrack(targetItem.track, 0);
+      set({
+        currentTrack: targetItem.track,
+        positionMs: 0,
+        durationMs: targetItem.track.durationMs || 200000,
+        isPlaying: true,
+        queue: remaining,
+      });
+    },
+
+    clearQueue: () => {
+      set({ queue: [] });
+    },
+
+    moveQueueItem: (itemId, direction) => {
+      const currentQueue = [...get().queue];
+      const index = currentQueue.findIndex((q) => q.id === itemId);
+      if (index === -1) return;
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= currentQueue.length) return;
+      const [item] = currentQueue.splice(index, 1);
+      currentQueue.splice(targetIndex, 0, item);
+      set({ queue: currentQueue });
     },
 
     playTrackImmediate: (track) => {

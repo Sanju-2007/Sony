@@ -11,10 +11,11 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
-import { Search, X, Play, Plus, Check, Music2, Globe, Sparkles, RotateCcw } from "lucide-react-native";
+import { Search, X, Play, Plus, Check, Music2, Globe, Sparkles, RotateCcw, ListMusic } from "lucide-react-native";
 import { TrackMetadata } from "@sony/types";
 import { typography, colors, spacing, radii } from "../../theme/tokens";
 import { useThemeStore } from "../../store/themeStore";
+import { usePlaybackStore } from "../../store/playbackStore";
 import {
   freeMusicService,
   FEATURED_FULL_AUDIO_TRACKS,
@@ -179,6 +180,7 @@ interface MusicSearchModalProps {
   onClose: () => void;
   onSelectTrack?: (track: TrackMetadata) => void;
   onAddToQueue?: (track: TrackMetadata) => void;
+  onOpenQueue?: () => void;
 }
 
 export function MusicSearchModal({
@@ -186,10 +188,13 @@ export function MusicSearchModal({
   onClose,
   onSelectTrack,
   onAddToQueue,
+  onOpenQueue,
 }: MusicSearchModalProps) {
   const { palette, isDark } = useThemeStore();
+  const { queue } = usePlaybackStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [addedTrackIds, setAddedTrackIds] = useState<Record<string, boolean>>({});
+  const [justAddedTitle, setJustAddedTitle] = useState<string | null>(null);
 
   // Dynamic recommendations & last played track persistence
   const [lastPlayedTrack, setLastPlayedTrack] = useState<TrackMetadata | null>(() => {
@@ -300,9 +305,13 @@ export function MusicSearchModal({
       onAddToQueue(track);
     }
     setAddedTrackIds((prev) => ({ ...prev, [track.id]: true }));
+    setJustAddedTitle(track.title);
     setTimeout(() => {
       setAddedTrackIds((prev) => ({ ...prev, [track.id]: false }));
     }, 2500);
+    setTimeout(() => {
+      setJustAddedTitle(null);
+    }, 4000);
   };
 
   const handlePlayNow = (track: TrackMetadata) => {
@@ -333,7 +342,7 @@ export function MusicSearchModal({
         <View style={[styles.modalContainer, { backgroundColor: palette.surface }]}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <View>
+            <View style={{ flex: 1 }}>
               <View style={styles.badgeRow}>
                 <Music2 size={13} color="#10B981" style={{ marginRight: 5 }} />
                 <Text style={[styles.badgeText, { color: "#10B981" }]}>
@@ -342,12 +351,25 @@ export function MusicSearchModal({
               </View>
               <Text style={[styles.modalTitle, { color: palette.textPrimary }]}>Search YouTube Audio</Text>
             </View>
-            <TouchableOpacity
-              style={[styles.closeBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
-              onPress={onClose}
-            >
-              <X size={18} color={palette.textPrimary} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              {onOpenQueue && (
+                <TouchableOpacity
+                  style={[styles.queueHeaderBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
+                  onPress={onOpenQueue}
+                >
+                  <ListMusic size={14} color={palette.speaking} style={{ marginRight: 4 }} />
+                  <Text style={[styles.queueHeaderBtnText, { color: palette.textPrimary }]}>
+                    Queue ({queue.length})
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.closeBtn, { backgroundColor: palette.background, borderColor: palette.border }]}
+                onPress={onClose}
+              >
+                <X size={18} color={palette.textPrimary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Search Box */}
@@ -369,6 +391,37 @@ export function MusicSearchModal({
               </TouchableOpacity>
             ) : null}
           </View>
+
+          {/* Just-Added Queue Alert Banner */}
+          {justAddedTitle && (
+            <View
+              style={[
+                styles.queueAddedToast,
+                {
+                  backgroundColor: isDark ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.12)",
+                  borderColor: "#10B981",
+                },
+              ]}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}>
+                <Check size={14} color="#10B981" style={{ marginRight: 6 }} />
+                <Text style={[styles.queueAddedToastText, { color: palette.textPrimary }]} numberOfLines={1}>
+                  Added <Text style={{ fontWeight: "700" }}>"{justAddedTitle}"</Text> to Queue!
+                </Text>
+              </View>
+              {onOpenQueue && (
+                <TouchableOpacity
+                  style={[styles.viewQueueToastBtn, { backgroundColor: palette.accent }]}
+                  onPress={onOpenQueue}
+                >
+                  <ListMusic size={11} color={palette.accentInverted} style={{ marginRight: 3 }} />
+                  <Text style={[styles.viewQueueToastBtnText, { color: palette.accentInverted }]}>
+                    View Queue ({queue.length})
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {/* Recommendation Banner (when not searching and lastPlayedTrack exists) */}
           {!isSearching && lastPlayedTrack && (
@@ -575,6 +628,42 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.05)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  queueHeaderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.full,
+    borderWidth: 1,
+  },
+  queueHeaderBtnText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: "700",
+  },
+  queueAddedToast: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: spacing.md,
+  },
+  queueAddedToastText: {
+    fontSize: 12,
+  },
+  viewQueueToastBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.full,
+  },
+  viewQueueToastBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
   searchBox: {
     flexDirection: "row",
