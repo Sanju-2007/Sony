@@ -8,7 +8,8 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build:packages": "npm run build --workspace=@sony/types && npm run build --workspace=@sony/music-core && npm run build --workspace=@sony/audio-ducking",
+    "build": "npm run build:packages && npm run build --workspace=@sony/api",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

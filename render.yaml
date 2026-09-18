@@ -7,7 +7,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm ci --include=dev && npm run prisma:generate --workspace=@sony/api && npm run build
+    buildCommand: npm ci --include=dev && npm run build:packages && npm run prisma:generate --workspace=@sony/api && npm run build --workspace=@sony/api
     startCommand: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && node apps/api/dist/main.js
     envVars:
       - key: NODE_VERSION
@@ -35,7 +35,7 @@ services:
   - type: web
     name: sony-social-web
     runtime: static
-    buildCommand: npm ci --include=dev && npm run build && npm run mobile:build
+    buildCommand: npm ci --include=dev && npm run build:packages && npm run mobile:build
     staticPublishPath: apps/mobile/dist
     routes:
       - type: rewrite

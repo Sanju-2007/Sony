@@ -12,6 +12,8 @@ dist/
 build/
 .expo/
 *.tsbuildinfo
+!packages/**/dist/
+!packages/**/dist/**
 
 # OS & Env
 .DS_Store
