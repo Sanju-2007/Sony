@@ -14,7 +14,8 @@ export class EmailService {
     const smtpHost = process.env.SMTP_HOST;
     const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
     const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
-    const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_PASS;
+    const rawPass = process.env.SMTP_PASS || process.env.GMAIL_PASS;
+    const smtpPass = rawPass ? rawPass.replace(/\s+/g, '') : undefined;
 
     if (smtpHost && smtpUser && smtpPass) {
       this.transporter = nodemailer.createTransport({
@@ -28,9 +29,10 @@ export class EmailService {
       });
       this.logger.log(`SMTP Email Transporter initialized with host: ${smtpHost}`);
     } else if (smtpUser && smtpPass) {
-      // Default to Gmail service if user & pass provided without custom host
       this.transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
           user: smtpUser,
           pass: smtpPass,
@@ -64,8 +66,10 @@ export class EmailService {
   }
 
   async sendOtpEmail(toEmail: string, otpCode: string): Promise<{ success: boolean; previewUrl?: string }> {
+    const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
     const fromAddress =
-      process.env.EMAIL_FROM || '"Sony Sound Verification" <security@sonysound.com>';
+      process.env.EMAIL_FROM ||
+      (smtpUser ? `"Sony Sound" <${smtpUser}>` : '"Sony Sound Verification" <security@sonysound.com>');
 
     const subject = `${otpCode} is your Sony Sound verification code`;
 

@@ -48,13 +48,15 @@ export class AuthService {
       (process.env.GMAIL_USER && process.env.GMAIL_PASS)
     );
 
+    const emailSentSuccessfully = hasLiveEmail && emailResult.success;
+
     return {
       success: true,
-      message: hasLiveEmail
+      message: emailSentSuccessfully
         ? 'Verification code sent to your email address.'
         : `Verification code: ${otpCode} (or use 123456)`,
       previewUrl: emailResult.previewUrl,
-      code: !hasLiveEmail ? otpCode : undefined,
+      code: !emailSentSuccessfully ? otpCode : undefined,
     };
   }
 
