@@ -35,8 +35,8 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = parseInt(process.env.PORT || '4000', 10);
-  await app.listen(port);
-  logger.log(`Social Music Listening API running on: http://localhost:${port}/${apiPrefix}`);
+  await app.listen(port, '0.0.0.0');
+  logger.log(`Social Music Listening API running on: http://0.0.0.0:${port}/${apiPrefix}`);
   logger.log(`Socket.IO Realtime Gateway running on namespace: /realtime`);
 }
 
